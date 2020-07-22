@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 	std::cout << "OpenCV Version: " << CV_VERSION << std::endl;
 
 	// Open Video File
-	cv::VideoCapture cap("D:\\Test_Video_File\\Demo_Video.mp4");
+	cv::VideoCapture cap("..\\Demo_Video\\Demo_Video.mp4");
 	if (!cap.isOpened())
 	{
 		std::cerr << "Fail Read Video\n";
