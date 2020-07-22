@@ -12,5 +12,5 @@ OS | Windows 10 Pro
 통합 개발 환경 | Visual Studio 2017
 
 ## 차선 인식 과정
-* 1st: Convert BGR to Gray
->	> 적응형 이진화 함수 사용하기 위해 Gray 스케일로 변환
+* **1st: Convert BGR to Gray**
+  + 적응형 이진화 함수 사용하기 위해 Gray 스케일로 변환
