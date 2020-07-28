@@ -129,8 +129,8 @@ int main(int argc, char** argv)
 		if (bsize < 3) bsize = 3;
 
 		// adaptiveTreshold Function
-		cv::adaptiveThreshold(img_gray, img_aBinary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, bsize, 3);
-		cv::adaptiveThreshold(img_gaussian, img_aBinary_gaussian, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, bsize, 3);
+		cv::adaptiveThreshold(img_gray, img_aBinary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, bsize, 3);
+		cv::adaptiveThreshold(img_gaussian, img_aBinary_gaussian, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, bsize, 3);
 		cv::imshow("Adaptive Binarization Image", img_aBinary);
 		cv::imshow("Adaptive Binarization Image of Gaussian", img_aBinary_gaussian);
 
