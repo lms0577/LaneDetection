@@ -194,28 +194,40 @@ int main(int argc, char** argv)
 		cv::imshow("Perspective Transform Image", img_pers);
 
 		// Lane Detection ---------------------------------------
-		cv::Mat img_zero = cv::Mat::zeros(640, 480, CV_8U);
-		for (int i = 0; i < 1; i++)
+		cv::Mat img_zero = cv::Mat::zeros(480, 640, CV_8U);
+		int index = 0, column = 100, row = 50;
+		std::vector<cv::Point> right_lane;
+		for (int i = 0; i < 4; i++)
 		{
-			int x = 400, y = 430 - (i * 40);
-			cv::Rect right_rect(x, y, 80, 40);
+			int x, y = 420 - (i * row);
+			if (i == 0) x = 400;
+			else x = 400 + index - (column / 2);
+			cv::Rect right_rect(x, y, column, row);
 			cv::Mat sum_col;
 			int max_value = 0;
-			int index = 0;
-			for (int j = 0; j < 80; j++)
+			for (int j = 0; j < column; j++)
 			{
-				//sum_col.push_back(cv::sum(img_pers(right_rect).col(j))[0]);
+				sum_col.push_back(cv::sum(img_pers(right_rect).col(j))[0]);
 				int value = (int)(cv::sum(img_pers(right_rect).col(j))[0]);
-				if (value > max_value)
+				if (value > 5000)
 				{
 					max_value = value;
-					index = j;
+					index = j + 8;
+					right_lane.push_back(cv::Point((x + index), (y + (row / 2))));
+					std::cout << sum_col << std::endl;
+					cv::rectangle(img_pers, right_rect, cv::Scalar(255), 1);
+					break;
 				}
 			}
-			std::cout << sum_col << std::endl;
-			cv::rectangle(img_pers, right_rect, cv::Scalar(255), 1);
+			//right_lane.push_back(cv::Point((x + index), (y + (row / 2))));
+			//std::cout << sum_col << std::endl;
+			//cv::rectangle(img_pers, right_rect, cv::Scalar(255), 1);
 		}
 		cv::imshow("Check ROI Image", img_pers);
+
+		// Draw Right Lane
+		cv::polylines(img_zero, right_lane, false, cv::Scalar(255), 2);
+		cv::imshow("Check Right Lane", img_zero);
 
 		// WaitKey
 		int key = cv::waitKey(1);
