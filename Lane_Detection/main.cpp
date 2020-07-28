@@ -70,7 +70,8 @@ int main(int argc, char** argv)
 	}
 
 	// Declare Variable
-	cv::Mat img, img_gray, img_aBinary, img_gaussian, img_aBinary_gaussian, img_hsv, img_lab;
+	cv::Mat img, img_gray, img_aBinary, img_gaussian, img_aBinary_gaussian, img_hsv, 
+		img_lab, img_binary_gaussian, img_no_light;
 
 	// Get Video width x height
 	double width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
@@ -80,13 +81,6 @@ int main(int argc, char** argv)
 	//LaneDetection laneDetection(width, height);
 
 	//std::cout << laneDetection.getWidth() << " " << laneDetection.getHeight() << std::endl;
-
-	// Set NameWindow
-	cv::namedWindow("Adaptive Binarization Image");
-
-	// Create Trackbar
-	cv::createTrackbar("Block Size", "Adaptive Binarization Image", 0, 200, on_trackbar);
-	cv::setTrackbarPos("Block Size", "Adaptive Binarization Image", 11);
 
 	// Camera Calibration
 	cv::Mat mtx = (cv::Mat1d(3, 3) << 375.02024751, 0., 316.52572289, 0., 490.14999206, 288.56330145, 0., 0., 1.);
@@ -101,6 +95,19 @@ int main(int argc, char** argv)
 	// Get Perspective Transform Matrix
 	cv::Mat pers = cv::getPerspectiveTransform(srcQuad, dstQuad);
 
+	// Set NameWindow
+	//cv::namedWindow("Adaptive Binarization Image");
+	cv::namedWindow("No Lightness Image");
+	cv::namedWindow("Binary Image");
+
+	// Create Trackbar
+	//cv::createTrackbar("Block Size", "Adaptive Binarization Image", 0, 200, on_trackbar);
+	//cv::setTrackbarPos("Block Size", "Adaptive Binarization Image", 11);
+	cv::createTrackbar("K Size", "No Lightness Image", 0, 101);
+	cv::setTrackbarPos("K Size", "No Lightness Image", 91);
+	cv::createTrackbar("Threshold", "Binary Image", 0, 255);
+	cv::setTrackbarPos("Threshold", "Binary Image", 50);
+
 	while (1)
 	{
 		// Read 1 frame from Video File
@@ -111,49 +118,61 @@ int main(int argc, char** argv)
 			break;
 		}
 
-		// Show Video Image
+		// Show Video Image--------------------------------------
 		cv::imshow("Original Image", img);
 
-		// Convert BGR to Gray
-		cv::cvtColor(img, img_gray, cv::COLOR_BGR2GRAY);
-		cv::imshow("Gray Image", img_gray);
+		// Convert BGR to Gray------------------------------------
+		//cv::cvtColor(img, img_gray, cv::COLOR_BGR2GRAY);
+		//cv::imshow("Gray Image", img_gray);
 
-		// Convert BGR to Lab
+		// Convert BGR to Lab-----------------------------------
 		// 조명 효과 제거하기 위한 변환
 		cv::cvtColor(img, img_lab, cv::COLOR_BGR2Lab);
 		std::vector<cv::Mat> lab;
-		cv::imshow("Lab Image", img_lab);
 		cv::split(img_lab, lab);
 		cv::Mat lightness = lab[0];
-		cv::Mat lightness_not, test;
-		cv::medianBlur(lightness, lightness, 51);
+		cv::Mat lightness_blur, lightness_not, temp;
 		cv::bitwise_not(lightness, lightness_not);
-		cv::imshow("Lightness", lightness);
-		cv::add(lightness, lightness_not, lab[0]);
+		int ksize = cv::getTrackbarPos("K Size", "No Lightness Image");
+		if (ksize % 2 == 0) ksize--;
+		if (ksize < 3) ksize = 1;
+		cv::medianBlur(lightness, lightness_blur, ksize);
+		cv::add(lightness_not, lightness_blur, temp);
+		cv::bitwise_not(temp, lab[0]);
 		cv::merge(lab, img_lab);
-		cv::cvtColor(img_lab, test, cv::COLOR_Lab2BGR);
-		cv::imshow("Test", test);
+		cv::cvtColor(img_lab, img_no_light, cv::COLOR_Lab2BGR);
+		cv::imshow("No Lightness Image", img_no_light);
 		
+		// Convert BGR to Gray-------------------------------------
+		cv::cvtColor(img_no_light, img_gray, cv::COLOR_BGR2GRAY);
+		cv::imshow("No Lightness Gray Image", img_gray);
 
-		// Convert BGR to HSV
-		cv::cvtColor(img, img_hsv, cv::COLOR_BGR2HSV);
+		// Convert BGR to HSV----------------------------------------
+		/*
+		cv::cvtColor(lightness_remove, img_hsv, cv::COLOR_BGR2HSV);
 		std::vector<cv::Mat> hsv;
 		cv::split(img_hsv, hsv);
 		cv::Mat hue = hsv[0];
 		cv::Mat saturation = hsv[1];
 		cv::Mat value = hsv[2];
-		value = value > 240;
+		value = value > 50;
 		cv::inRange(saturation, cv::Scalar(50), cv::Scalar(100), saturation);
 		cv::imshow("H", hue);
 		cv::imshow("S", saturation);
 		cv::imshow("V", value);
-
+		*/
 		
-		// Gaussian Filter
+		// Gaussian Filter-------------------------------------
 		double sigma = 2;
 		cv::GaussianBlur(img_gray, img_gaussian, cv::Size(), sigma);
 
+		// Binarization----------------------------------------
+		int threshold = cv::getTrackbarPos("Threshold", "Binary Image");
+		img_binary_gaussian = img_gray > threshold;
+		cv::imshow("Binary Image", img_binary_gaussian);
+
 		// Adaptive Binarization ------------------------------
+		/*
 		// Get Block Size
 		int bsize = cv::getTrackbarPos("Block Size", "Adaptive Binarization Image");
 		if (bsize % 2 == 0) bsize--;
@@ -164,13 +183,14 @@ int main(int argc, char** argv)
 		cv::adaptiveThreshold(img_gaussian, img_aBinary_gaussian, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, bsize, 3);
 		cv::imshow("Adaptive Binarization Image", img_aBinary);
 		cv::imshow("Adaptive Binarization Image of Gaussian", img_aBinary_gaussian);
+		*/
 
-		// Camera Calibration
+		// Camera Calibration ---------------------------------
 		cv::Mat img_cali;
-		cv::remap(img_aBinary_gaussian, img_cali, mapx, mapy, cv::INTER_LINEAR);
+		cv::remap(img_binary_gaussian, img_cali, mapx, mapy, cv::INTER_LINEAR);
 		cv::imshow("Camera Calibration Image", img_cali);
 
-		// Perspective Transform
+		// Perspective Transform--------------------------------
 		cv::Mat img_pers;
 		cv::warpPerspective(img_cali, img_pers, pers, cv::Size());
 		cv::imshow("Perspective Transform Image", img_pers);
