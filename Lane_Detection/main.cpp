@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 
+/*
 class LaneDetection
 {
 private:
@@ -51,17 +52,14 @@ public:
 	}
 
 };
-
-void on_trackbar(int, void*) {
-
-}
+*/
 
 int main(int argc, char** argv)
 {
-	// Confirm OpenCV Version
+	// Confirm OpenCV Version --------------------------------------------
 	std::cout << "OpenCV Version: " << CV_VERSION << std::endl;
 
-	// Open Video File
+	// Open Video File ----------------------------------------------------
 	cv::VideoCapture cap("..\\Demo_Video\\Demo_Video.mp4");
 	if (!cap.isOpened())
 	{
@@ -69,32 +67,32 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	// Declare Variable
+	// Declare Variable -------------------------------------------------------
 	cv::Mat img, img_gray, img_aBinary, img_gaussian, img_aBinary_gaussian, img_hsv, 
 		img_lab, img_binary_gaussian, img_no_light;
 
-	// Get Video width x height
+	// Get Video width x height ----------------------------------------------
 	double width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
 	double height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
 
 	// Declare LaneDetection Class
 	//LaneDetection laneDetection(width, height);
-
 	//std::cout << laneDetection.getWidth() << " " << laneDetection.getHeight() << std::endl;
 
-	// Camera Calibration
+	// Camera Calibration --------------------------------------------
 	cv::Mat mtx = (cv::Mat1d(3, 3) << 375.02024751, 0., 316.52572289, 0., 490.14999206, 288.56330145, 0., 0., 1.);
 	cv::Mat dist = (cv::Mat1d(1, 5) << -0.30130634, 0.09320542, -0.00809047, 0.00165312, -0.00639115);
 	cv::Mat newcameramtx = (cv::Mat1d(3, 3) << 273.75825806, 0., 318.4331204, 0., 391.74940796, 283.77532838, 0., 0., 1.);
 	cv::Mat mapx, mapy;
 	cv::initUndistortRectifyMap(mtx, dist, cv::Mat(), newcameramtx, cv::Size(width, height), CV_32FC1, mapx, mapy);
 
-	// Perspective Transform
+	// Perspective Transform ---------------------------------------------------------
 	std::vector<cv::Point2f> srcQuad = { cv::Point2f(0.4 * width, 0.45 * height), cv::Point2f(0.6 * width, 0.45 * height), cv::Point2f(0.0, height), cv::Point2f(width, height) };
 	std::vector<cv::Point2f> dstQuad = { cv::Point2f(0.27 * width, 0), cv::Point2f(0.65 * width, 0), cv::Point2f(0.27 * width, height), cv::Point2f(0.73 * width, height) };
 	// Get Perspective Transform Matrix
 	cv::Mat pers = cv::getPerspectiveTransform(srcQuad, dstQuad);
 
+	// Set Trackbar -----------------------------------------------------------------
 	// Set NameWindow
 	//cv::namedWindow("Adaptive Binarization Image");
 	cv::namedWindow("No Lightness Image");
@@ -104,7 +102,7 @@ int main(int argc, char** argv)
 	//cv::createTrackbar("Block Size", "Adaptive Binarization Image", 0, 200, on_trackbar);
 	//cv::setTrackbarPos("Block Size", "Adaptive Binarization Image", 11);
 	cv::createTrackbar("K Size", "No Lightness Image", 0, 101);
-	cv::setTrackbarPos("K Size", "No Lightness Image", 91);
+	cv::setTrackbarPos("K Size", "No Lightness Image", 101);
 	cv::createTrackbar("Threshold", "Binary Image", 0, 255);
 	cv::setTrackbarPos("Threshold", "Binary Image", 50);
 
@@ -195,7 +193,29 @@ int main(int argc, char** argv)
 		cv::warpPerspective(img_cali, img_pers, pers, cv::Size());
 		cv::imshow("Perspective Transform Image", img_pers);
 
-		// Gradient Sobel Mask
+		// Lane Detection ---------------------------------------
+		cv::Mat img_zero = cv::Mat::zeros(640, 480, CV_8U);
+		for (int i = 0; i < 1; i++)
+		{
+			int x = 400, y = 430 - (i * 40);
+			cv::Rect right_rect(x, y, 80, 40);
+			cv::Mat sum_col;
+			int max_value = 0;
+			int index = 0;
+			for (int j = 0; j < 80; j++)
+			{
+				//sum_col.push_back(cv::sum(img_pers(right_rect).col(j))[0]);
+				int value = (int)(cv::sum(img_pers(right_rect).col(j))[0]);
+				if (value > max_value)
+				{
+					max_value = value;
+					index = j;
+				}
+			}
+			std::cout << sum_col << std::endl;
+			cv::rectangle(img_pers, right_rect, cv::Scalar(255), 1);
+		}
+		cv::imshow("Check ROI Image", img_pers);
 
 		// WaitKey
 		int key = cv::waitKey(1);
@@ -203,6 +223,7 @@ int main(int argc, char** argv)
 		{
 			// Print Key
 			std::cout << "Key Value: " << key << std::endl;
+
 			// Release Resource
 			cap.release();
 			cv::destroyAllWindows();
