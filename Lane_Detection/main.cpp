@@ -70,7 +70,7 @@ int main(int argc, char** argv)
 	}
 
 	// Declare Variable
-	cv::Mat img, img_gray, img_aBinary, img_gaussian, img_aBinary_gaussian;
+	cv::Mat img, img_gray, img_aBinary, img_gaussian, img_aBinary_gaussian, img_hsv, img_lab;
 
 	// Get Video width x height
 	double width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
@@ -118,6 +118,37 @@ int main(int argc, char** argv)
 		cv::cvtColor(img, img_gray, cv::COLOR_BGR2GRAY);
 		cv::imshow("Gray Image", img_gray);
 
+		// Convert BGR to Lab
+		// 조명 효과 제거하기 위한 변환
+		cv::cvtColor(img, img_lab, cv::COLOR_BGR2Lab);
+		std::vector<cv::Mat> lab;
+		cv::imshow("Lab Image", img_lab);
+		cv::split(img_lab, lab);
+		cv::Mat lightness = lab[0];
+		cv::Mat lightness_not, test;
+		cv::medianBlur(lightness, lightness, 51);
+		cv::bitwise_not(lightness, lightness_not);
+		cv::imshow("Lightness", lightness);
+		cv::add(lightness, lightness_not, lab[0]);
+		cv::merge(lab, img_lab);
+		cv::cvtColor(img_lab, test, cv::COLOR_Lab2BGR);
+		cv::imshow("Test", test);
+		
+
+		// Convert BGR to HSV
+		cv::cvtColor(img, img_hsv, cv::COLOR_BGR2HSV);
+		std::vector<cv::Mat> hsv;
+		cv::split(img_hsv, hsv);
+		cv::Mat hue = hsv[0];
+		cv::Mat saturation = hsv[1];
+		cv::Mat value = hsv[2];
+		value = value > 240;
+		cv::inRange(saturation, cv::Scalar(50), cv::Scalar(100), saturation);
+		cv::imshow("H", hue);
+		cv::imshow("S", saturation);
+		cv::imshow("V", value);
+
+		
 		// Gaussian Filter
 		double sigma = 2;
 		cv::GaussianBlur(img_gray, img_gaussian, cv::Size(), sigma);
@@ -143,6 +174,8 @@ int main(int argc, char** argv)
 		cv::Mat img_pers;
 		cv::warpPerspective(img_cali, img_pers, pers, cv::Size());
 		cv::imshow("Perspective Transform Image", img_pers);
+
+		// Gradient Sobel Mask
 
 		// WaitKey
 		int key = cv::waitKey(1);
