@@ -1,6 +1,7 @@
 #include "opencv2/opencv.hpp"
 #include <iostream>
 #include <vector>
+//#include <string>
 
 /*
 class LaneDetection
@@ -94,22 +95,39 @@ int main(int argc, char** argv)
 
 	// Set Trackbar -----------------------------------------------------------------
 	// Set NameWindow
-	//cv::namedWindow("Adaptive Binarization Image");
+	cv::namedWindow("Adaptive Binarization Image");
 	cv::namedWindow("No Lightness Image");
 	cv::namedWindow("Binary Image");
+	cv::namedWindow("HSV Image", cv::WINDOW_NORMAL);
+	cv::resizeWindow("HSV Image", cv::Size(640, 480));
 
 	// Create Trackbar
-	//cv::createTrackbar("Block Size", "Adaptive Binarization Image", 0, 200, on_trackbar);
-	//cv::setTrackbarPos("Block Size", "Adaptive Binarization Image", 11);
-	cv::createTrackbar("K Size", "No Lightness Image", 0, 101);
+	cv::createTrackbar("Block Size", "Adaptive Binarization Image", 0, 200);
+	cv::setTrackbarPos("Block Size", "Adaptive Binarization Image", 11);
+	cv::createTrackbar("K Size", "No Lightness Image", 0, 200);
 	cv::setTrackbarPos("K Size", "No Lightness Image", 101);
 	cv::createTrackbar("Threshold", "Binary Image", 0, 255);
 	cv::setTrackbarPos("Threshold", "Binary Image", 50);
+	cv::createTrackbar("Lower Hue", "HSV Image", 0, 180);
+	cv::setTrackbarPos("Lower Hue", "HSV Image", 0);
+	cv::createTrackbar("Upper Hue", "HSV Image", 0, 180);
+	cv::setTrackbarPos("Upper Hue", "HSV Image", 180);
+	cv::createTrackbar("Lower Sat", "HSV Image", 0, 255);
+	cv::setTrackbarPos("Lower Sat", "HSV Image", 0);
+	cv::createTrackbar("Upper Sat", "HSV Image", 0, 255);
+	cv::setTrackbarPos("Upper Sat", "HSV Image", 50);
+	cv::createTrackbar("Lower Val", "HSV Image", 0, 255);
+	cv::setTrackbarPos("Lower Val", "HSV Image", 0);
+	cv::createTrackbar("Upper Val", "HSV Image", 0, 255);
+	cv::setTrackbarPos("Upper Val", "HSV Image", 255);
+
+	int count = 0;
 
 	while (1)
 	{
 		// Read 1 frame from Video File
 		cap.read(img);
+		//img = cv::imread("D:\\Computer Vision\\LaneDetection\\Video_Frame\\image_171.jpg");
 		if (img.empty())
 		{
 			std::cerr << "No Frame\n";
@@ -122,6 +140,21 @@ int main(int argc, char** argv)
 		// Convert BGR to Gray------------------------------------
 		//cv::cvtColor(img, img_gray, cv::COLOR_BGR2GRAY);
 		//cv::imshow("Gray Image", img_gray);
+
+		// Convert BGR to HSV----------------------------------------
+		/*cv::Mat hsv, v, white, yellow, or_img;
+		cv::Scalar yellow_lower(5, 90, 100);
+		cv::Scalar yellow_upper(200, 255, 255);
+		std::vector<cv::Mat> hsv_split;
+		cv::cvtColor(img, hsv, cv::COLOR_BGR2HSV);
+		cv::split(hsv, hsv_split);
+		v = hsv_split[2];
+		cv::inRange(v, 245, 255, white);
+		cv::inRange(hsv, yellow_lower, yellow_upper, yellow);
+		cv::bitwise_or(white, yellow, or_img);
+		cv::imshow("White", white);
+		cv::imshow("Yellow", yellow);
+		cv::imshow("Or Image", or_img);*/
 
 		// Convert BGR to Lab-----------------------------------
 		// 조명 효과 제거하기 위한 변환
@@ -140,60 +173,120 @@ int main(int argc, char** argv)
 		cv::merge(lab, img_lab);
 		cv::cvtColor(img_lab, img_no_light, cv::COLOR_Lab2BGR);
 		cv::imshow("No Lightness Image", img_no_light);
-		
-		// Convert BGR to Gray-------------------------------------
-		cv::cvtColor(img_no_light, img_gray, cv::COLOR_BGR2GRAY);
-		cv::imshow("No Lightness Gray Image", img_gray);
+
+		// Save Frame ------------------------------------------------
+		/*count++;
+		std::string num = std::to_string(count);
+		std::string filename = "D:\\Computer Vision\\LaneDetection\\Video_Frame\\image_" + num + ".jpg";
+		cv::imwrite(filename, img_no_light);*/
+
+		// Get Frame From JPG
+
 
 		// Convert BGR to HSV----------------------------------------
-		/*
-		cv::cvtColor(lightness_remove, img_hsv, cv::COLOR_BGR2HSV);
-		std::vector<cv::Mat> hsv;
-		cv::split(img_hsv, hsv);
-		cv::Mat hue = hsv[0];
-		cv::Mat saturation = hsv[1];
-		cv::Mat value = hsv[2];
-		value = value > 50;
-		cv::inRange(saturation, cv::Scalar(50), cv::Scalar(100), saturation);
-		cv::imshow("H", hue);
-		cv::imshow("S", saturation);
-		cv::imshow("V", value);
-		*/
+		cv::Mat hue, saturation, value, dst, hsv_range, h_range, s_range, v_range, dst_and, test;
+		int hue_low = cv::getTrackbarPos("Lower Hue", "HSV Image");
+		int hue_up = cv::getTrackbarPos("Upper Hue", "HSV Image");
+		int sat_low = cv::getTrackbarPos("Lower Sat", "HSV Image");
+		int sat_up = cv::getTrackbarPos("Upper Sat", "HSV Image");
+		int val_low = cv::getTrackbarPos("Lower Val", "HSV Image");
+		int val_up = cv::getTrackbarPos("Upper Val", "HSV Image");
+		cv::Scalar lower(hue_low, sat_low, val_low);
+		cv::Scalar upper(hue_up, sat_up, val_up);
+		std::vector<cv::Mat> hsv_split;
+		cv::cvtColor(img_no_light, img_hsv, cv::COLOR_BGR2HSV);
+		//cv::cvtColor(img, img_hsv, cv::COLOR_BGR2HSV);
+		cv::inRange(img_hsv, lower, upper, hsv_range);
+		cv::bitwise_and(img_hsv, img_hsv, dst_and, hsv_range);
+		cv::split(img_hsv, hsv_split);
+		hue = hsv_split[0];
+		saturation = hsv_split[1];
+		value = hsv_split[2];
+		cv::inRange(hue, 0, 50, hue);
+		cv::inRange(saturation, 0, 50, saturation);
+		//cv::inRange(hue, hue_low, hue_up, hue);
+		//cv::inRange(saturation, sat_low, sat_up, saturation);
+		//cv::inRange(value, val_low, val_up, value);
+		cv::bitwise_and(img_hsv, img_hsv, h_range, hue);
+		cv::bitwise_and(img_hsv, img_hsv, s_range, saturation);
+		//cv::bitwise_and(img_hsv, img_hsv, v_range, value);
+		cv::bitwise_or(h_range, s_range, test);
+		//cv::bitwise_or(hsv_range, v_range, hsv_range);
+		cv::cvtColor(dst_and, dst, cv::COLOR_HSV2BGR);
+		//cv::inRange(hsv, lower_hue, upper_hue, yellow);
+		//cv::bitwise_or(white, yellow, or_img);
+		//cv::imshow("White", white);
+		cv::imshow("HSV Range Image", dst);
+		cv::imshow("Test", test);
+		//img_roi = img_no_light(roi).row(0);
+		/*std::cout << "Hue: " << std::endl;
+		std::cout << h.row(460) << std::endl;
+		std::cout << "Saturation: " << std::endl;
+		std::cout << s.row(460) << std::endl;
+		std::cout << "Value: " << std::endl;
+		std::cout << v.row(460) << std::endl;
+
+		cv::line(img_no_light, cv::Point(0, 460), cv::Point(640, 460), cv::Scalar(0, 0, 255), 2);
+		cv::imshow("Show ROI", img_no_light);*/
+
+		// Convert BGR to Gray-------------------------------------
+		/*cv::cvtColor(img_no_light, img_gray, cv::COLOR_BGR2GRAY);
+		cv::imshow("No Lightness Gray Image", img_gray);*/
+		
+
+		// Convert BGR to HSV----------------------------------------
+		//cv::cvtColor(img_no_light, img_hsv, cv::COLOR_BGR2HSV);
+		//cv::Mat test;
+		//std::vector<cv::Mat> hsv;
+		//cv::split(img_hsv, hsv);
+		//cv::Mat hue = hsv[0];
+		//cv::Mat saturation = hsv[1];
+		//cv::Mat value = hsv[2];
+		//cv::Scalar yellow_low(5, 90, 100);
+		//cv::Scalar yellow_up(200, 255, 255);
+		////value = value > 50;
+		//cv::inRange(img_hsv, yellow_low, yellow_up, test);
+		//cv::imshow("Test", test);
+		////cv::imshow("H", hue);
+		////cv::imshow("S", saturation);
+		////cv::imshow("V", value);
+
 		
 		// Gaussian Filter-------------------------------------
 		double sigma = 2;
-		cv::GaussianBlur(img_gray, img_gaussian, cv::Size(), sigma);
+		cv::GaussianBlur(value, img_gaussian, cv::Size(), sigma);
 
 		// Binarization----------------------------------------
+		/*
 		int threshold = cv::getTrackbarPos("Threshold", "Binary Image");
 		img_binary_gaussian = img_gray > threshold;
 		cv::imshow("Binary Image", img_binary_gaussian);
+		*/
 
 		// Adaptive Binarization ------------------------------
-		/*
 		// Get Block Size
 		int bsize = cv::getTrackbarPos("Block Size", "Adaptive Binarization Image");
 		if (bsize % 2 == 0) bsize--;
 		if (bsize < 3) bsize = 3;
 
 		// adaptiveTreshold Function
-		cv::adaptiveThreshold(img_gray, img_aBinary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, bsize, 3);
-		cv::adaptiveThreshold(img_gaussian, img_aBinary_gaussian, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, bsize, 3);
+		cv::adaptiveThreshold(img_gaussian, img_aBinary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, bsize, 3);
+		//cv::adaptiveThreshold(img_gaussian, img_aBinary_gaussian, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, bsize, 3);
 		cv::imshow("Adaptive Binarization Image", img_aBinary);
-		cv::imshow("Adaptive Binarization Image of Gaussian", img_aBinary_gaussian);
-		*/
+		//cv::imshow("Adaptive Binarization Image of Gaussian", img_aBinary_gaussian);
 
 		// Camera Calibration ---------------------------------
-		cv::Mat img_cali;
-		cv::remap(img_binary_gaussian, img_cali, mapx, mapy, cv::INTER_LINEAR);
-		cv::imshow("Camera Calibration Image", img_cali);
+		//cv::Mat img_cali;
+		//cv::remap(img_binary_gaussian, img_cali, mapx, mapy, cv::INTER_LINEAR);
+		//cv::imshow("Camera Calibration Image", img_cali);
 
 		// Perspective Transform--------------------------------
-		cv::Mat img_pers;
-		cv::warpPerspective(img_cali, img_pers, pers, cv::Size());
-		cv::imshow("Perspective Transform Image", img_pers);
+		//cv::Mat img_pers;
+		//cv::warpPerspective(img_cali, img_pers, pers, cv::Size());
+		//cv::imshow("Perspective Transform Image", img_pers);
 
 		// Lane Detection ---------------------------------------
+		/*
 		cv::Mat img_zero = cv::Mat::zeros(480, 640, CV_8U);
 		int index = 0, column = 100, row = 50;
 		std::vector<cv::Point> right_lane;
@@ -228,9 +321,10 @@ int main(int argc, char** argv)
 		// Draw Right Lane
 		cv::polylines(img_zero, right_lane, false, cv::Scalar(255), 2);
 		cv::imshow("Check Right Lane", img_zero);
+		*/
 
 		// WaitKey
-		int key = cv::waitKey(1);
+		int key = cv::waitKey(100);
 		if (key >= 0)
 		{
 			// Print Key
