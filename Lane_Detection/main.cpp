@@ -111,13 +111,13 @@ int main(int argc, char** argv)
 	cv::createTrackbar("Lower Hue", "HSV Image", 0, 180);
 	cv::setTrackbarPos("Lower Hue", "HSV Image", 0);
 	cv::createTrackbar("Upper Hue", "HSV Image", 0, 180);
-	cv::setTrackbarPos("Upper Hue", "HSV Image", 180);
+	cv::setTrackbarPos("Upper Hue", "HSV Image", 50);
 	cv::createTrackbar("Lower Sat", "HSV Image", 0, 255);
-	cv::setTrackbarPos("Lower Sat", "HSV Image", 0);
+	cv::setTrackbarPos("Lower Sat", "HSV Image", 50);
 	cv::createTrackbar("Upper Sat", "HSV Image", 0, 255);
-	cv::setTrackbarPos("Upper Sat", "HSV Image", 50);
+	cv::setTrackbarPos("Upper Sat", "HSV Image", 255);
 	cv::createTrackbar("Lower Val", "HSV Image", 0, 255);
-	cv::setTrackbarPos("Lower Val", "HSV Image", 0);
+	cv::setTrackbarPos("Lower Val", "HSV Image", 30);
 	cv::createTrackbar("Upper Val", "HSV Image", 0, 255);
 	cv::setTrackbarPos("Upper Val", "HSV Image", 255);
 
@@ -127,12 +127,16 @@ int main(int argc, char** argv)
 	{
 		// Read 1 frame from Video File
 		cap.read(img);
-		//img = cv::imread("D:\\Computer Vision\\LaneDetection\\Video_Frame\\image_171.jpg");
+		//img = cv::imread("D:\\Computer Vision\\LaneDetection\\Video_Frame\\image_160.jpg");
 		if (img.empty())
 		{
 			std::cerr << "No Frame\n";
 			break;
 		}
+
+		// Gaussian Filter-------------------------------------
+		//double sigma = 2;
+		cv::GaussianBlur(img, img_gaussian, cv::Size(), 1);
 
 		// Show Video Image--------------------------------------
 		cv::imshow("Original Image", img);
@@ -158,7 +162,7 @@ int main(int argc, char** argv)
 
 		// Convert BGR to Lab-----------------------------------
 		// 조명 효과 제거하기 위한 변환
-		cv::cvtColor(img, img_lab, cv::COLOR_BGR2Lab);
+		cv::cvtColor(img_gaussian, img_lab, cv::COLOR_BGR2Lab);
 		std::vector<cv::Mat> lab;
 		cv::split(img_lab, lab);
 		cv::Mat lightness = lab[0];
@@ -182,7 +186,6 @@ int main(int argc, char** argv)
 
 		// Get Frame From JPG
 
-
 		// Convert BGR to HSV----------------------------------------
 		cv::Mat hue, saturation, value, dst, hsv_range, h_range, s_range, v_range, dst_and, test;
 		int hue_low = cv::getTrackbarPos("Lower Hue", "HSV Image");
@@ -197,27 +200,34 @@ int main(int argc, char** argv)
 		cv::cvtColor(img_no_light, img_hsv, cv::COLOR_BGR2HSV);
 		//cv::cvtColor(img, img_hsv, cv::COLOR_BGR2HSV);
 		cv::inRange(img_hsv, lower, upper, hsv_range);
-		cv::bitwise_and(img_hsv, img_hsv, dst_and, hsv_range);
+		cv::imshow("HSV Range Binary Image", hsv_range);
+
+		cv::Mat img_or, yello_01, white_01;
+		cv::inRange(img_hsv, cv::Scalar(0, 50, 50), cv::Scalar(50, 255, 255), yello_01);
+		cv::inRange(img_hsv, cv::Scalar(0, 0, 30), cv::Scalar(180, 50, 255), white_01);
+		cv::bitwise_or(yello_01, white_01, img_or);
+		cv::imshow("Or Image", img_or);
+
+		//cv::bitwise_and(img_hsv, img_hsv, dst_and, hsv_range);
 		cv::split(img_hsv, hsv_split);
 		hue = hsv_split[0];
 		saturation = hsv_split[1];
 		value = hsv_split[2];
-		cv::inRange(hue, 0, 50, hue);
-		cv::inRange(saturation, 0, 50, saturation);
+		//cv::inRange(hue, 0, 50, hue);
+		//cv::inRange(saturation, 0, 50, saturation);
 		//cv::inRange(hue, hue_low, hue_up, hue);
 		//cv::inRange(saturation, sat_low, sat_up, saturation);
 		//cv::inRange(value, val_low, val_up, value);
-		cv::bitwise_and(img_hsv, img_hsv, h_range, hue);
-		cv::bitwise_and(img_hsv, img_hsv, s_range, saturation);
+		//cv::bitwise_and(img_hsv, img_hsv, h_range, hue);
+		//cv::bitwise_and(img_hsv, img_hsv, s_range, saturation);
 		//cv::bitwise_and(img_hsv, img_hsv, v_range, value);
-		cv::bitwise_or(h_range, s_range, test);
+		//cv::bitwise_or(h_range, s_range, test);
 		//cv::bitwise_or(hsv_range, v_range, hsv_range);
-		cv::cvtColor(dst_and, dst, cv::COLOR_HSV2BGR);
+		//cv::cvtColor(dst_and, dst, cv::COLOR_HSV2BGR);
 		//cv::inRange(hsv, lower_hue, upper_hue, yellow);
 		//cv::bitwise_or(white, yellow, or_img);
 		//cv::imshow("White", white);
-		cv::imshow("HSV Range Image", dst);
-		cv::imshow("Test", test);
+		//cv::imshow("HSV Range Image", dst);
 		//img_roi = img_no_light(roi).row(0);
 		/*std::cout << "Hue: " << std::endl;
 		std::cout << h.row(460) << std::endl;
@@ -228,6 +238,11 @@ int main(int argc, char** argv)
 
 		cv::line(img_no_light, cv::Point(0, 460), cv::Point(640, 460), cv::Scalar(0, 0, 255), 2);
 		cv::imshow("Show ROI", img_no_light);*/
+
+		// Canny Edge ----------------------------------------------
+		cv::Mat img_edge;
+		cv::Canny(img_or, img_edge, 100, 150);
+		cv::imshow("Canny Edge Image", img_edge);
 
 		// Convert BGR to Gray-------------------------------------
 		/*cv::cvtColor(img_no_light, img_gray, cv::COLOR_BGR2GRAY);
@@ -253,8 +268,8 @@ int main(int argc, char** argv)
 
 		
 		// Gaussian Filter-------------------------------------
-		double sigma = 2;
-		cv::GaussianBlur(value, img_gaussian, cv::Size(), sigma);
+		//double sigma = 2;
+		//cv::GaussianBlur(value, img_gaussian, cv::Size(), sigma);
 
 		// Binarization----------------------------------------
 		/*
@@ -265,25 +280,46 @@ int main(int argc, char** argv)
 
 		// Adaptive Binarization ------------------------------
 		// Get Block Size
-		int bsize = cv::getTrackbarPos("Block Size", "Adaptive Binarization Image");
-		if (bsize % 2 == 0) bsize--;
-		if (bsize < 3) bsize = 3;
+		//int bsize = cv::getTrackbarPos("Block Size", "Adaptive Binarization Image");
+		//if (bsize % 2 == 0) bsize--;
+		//if (bsize < 3) bsize = 3;
 
 		// adaptiveTreshold Function
-		cv::adaptiveThreshold(img_gaussian, img_aBinary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, bsize, 3);
+		//cv::adaptiveThreshold(img_gaussian, img_aBinary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, bsize, 3);
 		//cv::adaptiveThreshold(img_gaussian, img_aBinary_gaussian, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, bsize, 3);
-		cv::imshow("Adaptive Binarization Image", img_aBinary);
+		//cv::imshow("Adaptive Binarization Image", img_aBinary);
 		//cv::imshow("Adaptive Binarization Image of Gaussian", img_aBinary_gaussian);
 
 		// Camera Calibration ---------------------------------
-		//cv::Mat img_cali;
-		//cv::remap(img_binary_gaussian, img_cali, mapx, mapy, cv::INTER_LINEAR);
+		cv::Mat img_cali;
+		cv::remap(img_edge, img_cali, mapx, mapy, cv::INTER_LINEAR);
 		//cv::imshow("Camera Calibration Image", img_cali);
 
 		// Perspective Transform--------------------------------
-		//cv::Mat img_pers;
-		//cv::warpPerspective(img_cali, img_pers, pers, cv::Size());
-		//cv::imshow("Perspective Transform Image", img_pers);
+		cv::Mat img_pers;
+		cv::warpPerspective(img_cali, img_pers, pers, cv::Size());
+		cv::imshow("Perspective Transform Image", img_pers);
+
+		// Check Lane Pixel--------------------------------------
+		cv::Rect right_01(415, 435, 20, 10);
+		cv::Rect right_02(415, 425, 20, 10);
+		cv::Rect right_03(415, 415, 20, 10);
+		cv::Rect right_04(415, 405, 20, 10);
+		cv::Mat img_check = img_pers.clone();
+		cv::Mat lane_pixel_01 = img_pers(right_01);
+		cv::Mat lane_pixel_02 = img_pers(right_02);
+		cv::Mat lane_pixel_03 = img_pers(right_03);
+		cv::Mat lane_pixel_04 = img_pers(right_04);
+		cv::rectangle(img_check, right_01, cv::Scalar(255), 1);
+		cv::rectangle(img_check, right_02, cv::Scalar(255), 1);
+		cv::rectangle(img_check, right_03, cv::Scalar(255), 1);
+		cv::rectangle(img_check, right_04, cv::Scalar(255), 1);
+		cv::imshow("Check Lane Pixel Image", img_check);
+		std::cout << lane_pixel_04 << std::endl;
+		std::cout << lane_pixel_03 << std::endl;
+		std::cout << lane_pixel_02 << std::endl;
+		std::cout << lane_pixel_01 << std::endl;
+		std::cout << "--------------------------------------" << std::endl;
 
 		// Lane Detection ---------------------------------------
 		/*
