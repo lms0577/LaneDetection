@@ -293,7 +293,7 @@ int main(int argc, char** argv)
 		// Camera Calibration ---------------------------------
 		cv::Mat img_cali;
 		cv::remap(img_edge, img_cali, mapx, mapy, cv::INTER_LINEAR);
-		//cv::imshow("Camera Calibration Image", img_cali);
+		cv::imshow("Camera Calibration Image", img_cali);
 
 		// Perspective Transform--------------------------------
 		cv::Mat img_pers;
