@@ -33,8 +33,6 @@ OS | Windows 10 Pro
      + cv::medianBlur();
      + cv::add();
      + cv::merge();
-  + <참조>
-     + https://t9t9.com/60
      
 * **3rd: 색 공간 변환(BGR to HSV)**
   + <이유>
@@ -63,3 +61,7 @@ OS | Windows 10 Pro
   + <함수>
      + cv::getPerspectiveTransform();
      + cv::warpPerspective();
+
+* **참고**
+  + https://blog.naver.com/hirit808/221486800161
+  + https://t9t9.com/60
