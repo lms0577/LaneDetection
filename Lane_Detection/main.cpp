@@ -335,9 +335,13 @@ int main(int argc, char** argv)
 				// x = 415(열)부터 선 찾기 시작해서 x = 415 + 20 까지만 찾기
 				// y = 445(행)부터 시작해서 y = 445 - 40까지만 찾기(행은 윈도우당 40개씩) 
 				right_lane_start_index = 415;
+				int x = 415, y = 445;
 				// 윈도우당 총 40행이므로 40번 반복
 				for (int r = 0; r < row; r++)
 				{
+					// 영상의 y = 445(행), x = 415(열)의 원소값
+					uchar data = img_pers.at<uchar>(y, x);
+
 					// lane_index의 값이 50이상인 index가 있다면 20(열)의 반복 생략
 					if (lane_index != 0)
 					{
