@@ -121,7 +121,7 @@ int main(int argc, char** argv)
 	cv::createTrackbar("Upper Val", "HSV Image", 0, 255);
 	cv::setTrackbarPos("Upper Val", "HSV Image", 255);
 
-	int count = 0;
+	int count = 0, right_lane_start_index = 0;
 
 	while (1)
 	{
@@ -301,10 +301,10 @@ int main(int argc, char** argv)
 		cv::imshow("Perspective Transform Image", img_pers);
 
 		// Check Lane Pixel--------------------------------------
-		cv::Rect right_01(415, 435, 20, 10);
-		cv::Rect right_02(415, 425, 20, 10);
-		cv::Rect right_03(415, 415, 20, 10);
-		cv::Rect right_04(415, 405, 20, 10);
+		cv::Rect right_01(415, 405, 20, 40);
+		cv::Rect right_02(415, 365, 20, 40);
+		cv::Rect right_03(415, 325, 20, 40);
+		cv::Rect right_04(415, 285, 20, 40);
 		cv::Mat img_check = img_pers.clone();
 		cv::Mat lane_pixel_01 = img_pers(right_01);
 		cv::Mat lane_pixel_02 = img_pers(right_02);
@@ -321,7 +321,45 @@ int main(int argc, char** argv)
 		std::cout << lane_pixel_01 << std::endl;
 		std::cout << "--------------------------------------" << std::endl;
 
-		// Lane Detection ---------------------------------------
+		// Lane Detection 02---------------------------------------
+		//std::vector<int> lane_index;
+		int window_num = 4, lane_count, lane_index = 0;
+		int row = 40, column = 20;
+		
+		// 오른쪽 차선
+		// 슬라이딩 윈도우 개수만큼 반복
+		for (int i = 0; i < window_num; i++)
+		{
+			if (right_lane_start_index == 0)
+			{
+				// x = 415(열)부터 선 찾기 시작해서 x = 415 + 20 까지만 찾기
+				// y = 445(행)부터 시작해서 y = 445 - 40까지만 찾기(행은 윈도우당 40개씩) 
+				right_lane_start_index = 415;
+				// 윈도우당 총 40행이므로 40번 반복
+				for (int r = 0; r < row; r++)
+				{
+					// lane_index의 값이 50이상인 index가 있다면 20(열)의 반복 생략
+					if (lane_index != 0)
+					{
+
+					}
+					// lane_index의 값이 없다면 20(열)의 반복으로 찾기
+					else
+					{
+						for (int c = 0; c < column; c++)
+						{
+
+						}
+					}
+				}
+			}
+			else
+			{
+				std::cout << "index != 0" << std::endl;
+			}
+		}
+
+		// Lane Detection 01---------------------------------------
 		/*
 		cv::Mat img_zero = cv::Mat::zeros(480, 640, CV_8U);
 		int index = 0, column = 100, row = 50;
