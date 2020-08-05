@@ -55,6 +55,10 @@ public:
 };
 */
 
+//#define Main
+#define Debug
+
+#ifdef Main
 int main(int argc, char** argv)
 {
 	// Confirm OpenCV Version --------------------------------------------
@@ -127,7 +131,7 @@ int main(int argc, char** argv)
 	{
 		// Read 1 frame from Video File
 		cap.read(img);
-		//img = cv::imread("D:\\Computer Vision\\LaneDetection\\Video_Frame\\image_160.jpg");
+		//img = cv::imread("D:\\Computer Vision\\LaneDetection\\Video_Frame\\image_10.jpg");
 		if (img.empty())
 		{
 			std::cerr << "No Frame\n";
@@ -178,14 +182,6 @@ int main(int argc, char** argv)
 		cv::cvtColor(img_lab, img_no_light, cv::COLOR_Lab2BGR);
 		cv::imshow("No Lightness Image", img_no_light);
 
-		// Save Frame ------------------------------------------------
-		/*count++;
-		std::string num = std::to_string(count);
-		std::string filename = "D:\\Computer Vision\\LaneDetection\\Video_Frame\\image_" + num + ".jpg";
-		cv::imwrite(filename, img_no_light);*/
-
-		// Get Frame From JPG
-
 		// Convert BGR to HSV----------------------------------------
 		cv::Mat hue, saturation, value, dst, hsv_range, h_range, s_range, v_range, dst_and, test;
 		int hue_low = cv::getTrackbarPos("Lower Hue", "HSV Image");
@@ -198,7 +194,6 @@ int main(int argc, char** argv)
 		cv::Scalar upper(hue_up, sat_up, val_up);
 		std::vector<cv::Mat> hsv_split;
 		cv::cvtColor(img_no_light, img_hsv, cv::COLOR_BGR2HSV);
-		//cv::cvtColor(img, img_hsv, cv::COLOR_BGR2HSV);
 		cv::inRange(img_hsv, lower, upper, hsv_range);
 		cv::imshow("HSV Range Binary Image", hsv_range);
 
@@ -240,9 +235,9 @@ int main(int argc, char** argv)
 		cv::imshow("Show ROI", img_no_light);*/
 
 		// Canny Edge ----------------------------------------------
-		cv::Mat img_edge;
-		cv::Canny(img_or, img_edge, 100, 150);
-		cv::imshow("Canny Edge Image", img_edge);
+		cv::Mat img_canny;
+		cv::Canny(img_or, img_canny, 150, 300);
+		cv::imshow("Canny Edge Image", img_canny);
 
 		// Convert BGR to Gray-------------------------------------
 		/*cv::cvtColor(img_no_light, img_gray, cv::COLOR_BGR2GRAY);
@@ -292,13 +287,25 @@ int main(int argc, char** argv)
 
 		// Camera Calibration ---------------------------------
 		cv::Mat img_cali;
-		cv::remap(img_edge, img_cali, mapx, mapy, cv::INTER_LINEAR);
+		cv::remap(img_canny, img_cali, mapx, mapy, cv::INTER_LINEAR);
 		cv::imshow("Camera Calibration Image", img_cali);
 
 		// Perspective Transform--------------------------------
 		cv::Mat img_pers;
 		cv::warpPerspective(img_cali, img_pers, pers, cv::Size());
+		img_pers = img_pers >= 50;
 		cv::imshow("Perspective Transform Image", img_pers);
+
+		// Sobel Operator ----------------------------------------------
+		/*cv::Mat img_sobel_x, img_sobel_y;
+		cv::Sobel(img_pers, img_sobel_x, CV_32FC1, 1, 0);
+		cv::Sobel(img_pers, img_sobel_y, CV_32FC1, 0, 1);
+		img_sobel_x.convertTo(img_sobel_x, CV_8UC1);
+		img_sobel_y.convertTo(img_sobel_y, CV_8UC1);
+		img_sobel_x = img_sobel_x > 250;
+		img_sobel_y = img_sobel_y > 250;
+		cv::imshow("Sobel dx Image", img_sobel_x);
+		cv::imshow("Sobel dy Image", img_sobel_y);*/
 
 		// Check Lane Pixel--------------------------------------
 		cv::Rect right_01(415, 405, 20, 40);
@@ -359,7 +366,7 @@ int main(int argc, char** argv)
 			}
 			else
 			{
-				std::cout << "index != 0" << std::endl;
+				//std::cout << "index != 0" << std::endl;
 			}
 		}
 
@@ -401,6 +408,12 @@ int main(int argc, char** argv)
 		cv::imshow("Check Right Lane", img_zero);
 		*/
 
+		// Save Frame ------------------------------------------------
+		count++;
+		std::string num = std::to_string(count);
+		std::string filename = "D:\\Computer Vision\\LaneDetection\\Video_Frame\\image_" + num + ".bmp";
+		cv::imwrite(filename, img_pers);
+
 		// WaitKey
 		int key = cv::waitKey(100);
 		if (key >= 0)
@@ -417,3 +430,127 @@ int main(int argc, char** argv)
 
 	return 0;
 }
+#endif // Main
+
+#ifdef Debug
+int main(int argc, char** argv)
+{
+	cv::Mat img;
+	int count = 13;
+
+	/*std::string num = std::to_string(count);
+	std::string filename = "d:\\computer vision\\lanedetection\\video_frame\\image_" + num + ".jpg";
+	cv::imwrite(filename, img_pers);*/
+
+	int right_lane_start_index = 0;
+
+	while (1)
+	{
+		std::string num = std::to_string(count);
+		std::string filename = "d:\\computer vision\\lanedetection\\video_frame\\Bird Eye View\\image_" + num + ".jpg";
+		img = cv::imread(filename);
+		if (img.empty())
+		{
+			std::cerr << "No Frame\n";
+			break;
+		}
+		cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
+		img = img > 50;
+
+		// Lane Detection ---------------------------------------
+		//std::vector<int> lane_index;
+		int window_num = 1, lane_count, lane_index = 0;
+		int row = 40, column = 20;
+		std::vector<cv::Point> lane_point;
+
+		// 오른쪽 차선
+		// 슬라이딩 윈도우 개수만큼 반복
+		for (int i = 0; i < window_num; i++)
+		{
+			lane_count = 0;
+
+			// 프로그램 처음 시작할 때만 실행해서 right_lane_start_index 저장
+			if (right_lane_start_index == 0)
+			{
+				// x = 415(열)부터 선 찾기 시작해서 x = 415 + 20 까지만 찾기
+				// y = 445(행)부터 시작해서 y = 445 - 40까지만 찾기(행은 윈도우당 40개씩) 
+				//right_lane_start_index = 415;
+				int x = 415, y = 445;
+				// 윈도우당 총 40행이므로 40번 반복
+
+				for (int r = 0; r < row; r++)
+				{
+					y--;
+					uchar *p = img.ptr<uchar>(y);
+					std::cout << "r: " << r << std::endl;
+					std::cout << "row: " << y << "x: "<< x << std::endl;
+					for (int c = 0; c < column; c++)
+					{
+						// 영상의 y = 445 + r(행), x = 415 + c(열)의 원소값
+						x++;
+						int data_01 = p[x];
+						std::cout << "data_01: " << data_01 << std::endl;
+					}
+					x = 415;
+				}
+			}
+			else
+			{
+				//std::cout << "index != 0" << std::endl;
+			}
+		}
+
+		// Check Lane Pixel--------------------------------------
+		cv::Rect right_01(415, 405, 20, 40);
+		cv::Rect right_02(415, 365, 20, 40);
+		cv::Rect right_03(415, 325, 20, 40);
+		cv::Rect right_04(415, 285, 20, 40);
+		cv::Mat img_check = img.clone();
+		cv::Mat lane_pixel_01 = img(right_01);
+		cv::Mat lane_pixel_02 = img(right_02);
+		cv::Mat lane_pixel_03 = img(right_03);
+		cv::Mat lane_pixel_04 = img(right_04);
+		cv::rectangle(img_check, right_01, cv::Scalar(255), 1);
+		cv::rectangle(img_check, right_02, cv::Scalar(255), 1);
+		cv::rectangle(img_check, right_03, cv::Scalar(255), 1);
+		cv::rectangle(img_check, right_04, cv::Scalar(255), 1);
+		cv::imshow("Check Lane Pixel Image", img_check);
+		std::cout << lane_pixel_04 << std::endl;
+		std::cout << lane_pixel_03 << std::endl;
+		std::cout << lane_pixel_02 << std::endl;
+		std::cout << lane_pixel_01 << std::endl;
+		std::cout << "--------------------------------------" << std::endl;
+
+		// WaitKey
+		int key = cv::waitKey(0);
+		if (key == 27) // ESC
+		{
+			// Print Key
+			//std::cout << "Key Value: " << key << std::endl;
+
+			// Release Resource
+			cv::destroyAllWindows();
+			break;
+		}
+		else if (key == 97) // a
+		{
+			if (count == 13) count = 13;
+			else count--;
+		}
+		else if (key == 100) // d
+		{
+			if (count == 524) count = 524;
+			else count++;
+		}
+		else
+		{
+			// Print Key
+			//std::cout << "Key Value: " << key << std::endl;
+
+			// Release Resource
+			cv::destroyAllWindows();
+			break;
+		}
+	}
+}
+#endif // Debug
