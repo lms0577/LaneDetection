@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 //#include <string>
+//#include <cstdlib>
 
 /*
 class LaneDetection
@@ -460,8 +461,11 @@ int main(int argc, char** argv)
 		// Lane Detection ---------------------------------------
 		//std::vector<int> lane_index;
 		int window_num = 1, lane_count, lane_index = 0;
-		int row = 40, column = 20;
-		std::vector<cv::Point> lane_point;
+		int row = 40, column = 20, margin = 2;
+		//std::vector<cv::Point> lane_point;
+		std::vector<cv::Point> right_lane;
+		// y = 445(행)부터 시작
+		int y = 445;
 
 		// 오른쪽 차선
 		// 슬라이딩 윈도우 개수만큼 반복
@@ -469,36 +473,131 @@ int main(int argc, char** argv)
 		{
 			lane_count = 0;
 
-			// 프로그램 처음 시작할 때만 실행해서 right_lane_start_index 저장
-			if (right_lane_start_index == 0)
+			// 첫번째 슬라이딩 윈도우
+			if (i == 0)
 			{
-				// x = 415(열)부터 선 찾기 시작해서 x = 415 + 20 까지만 찾기
-				// y = 445(행)부터 시작해서 y = 445 - 40까지만 찾기(행은 윈도우당 40개씩) 
-				//right_lane_start_index = 415;
-				int x = 415, y = 445;
-				// 윈도우당 총 40행이므로 40번 반복
+				cv::Point start_point, end_point, tmp_point;
 
-				for (int r = 0; r < row; r++)
+				// 프로그램 처음 시작할 때의 첫번째 슬라이딩 윈도우(right_lane_start_index 저장)
+				// 1st Frame(최초)
+				if (right_lane_start_index == 0)
 				{
-					y--;
-					uchar *p = img.ptr<uchar>(y);
-					std::cout << "r: " << r << std::endl;
-					std::cout << "row: " << y << "x: "<< x << std::endl;
-					for (int c = 0; c < column; c++)
+					// x = 415(열)부터 선 찾기 시작해서 x = 415 + 20 까지만 찾기
+					// y = 445(행)부터 시작해서 y = 445 - 40까지만 찾기(행은 윈도우당 40개씩)
+					int x = 415;
+
+					// start_point 찾으면 flag 올리기
+					bool start_flag = false;
+
+					// 임시 x(열) 값 저장 변수
+					int x_tmp;
+
+					// 윈도우당 총 40행이므로 40번 반복
+					for (int r = 0; r < row; r++)
 					{
-						// 영상의 y = 445 + r(행), x = 415 + c(열)의 원소값
-						x++;
-						int data_01 = p[x];
-						std::cout << "data_01: " << data_01 << std::endl;
+						uchar *p = img.ptr<uchar>(y);
+
+						// start_point 못 찾았으면 계속 찾는다
+						if (start_flag == false)
+						{
+							for (int c = 0; c < column; c++)
+							{
+								// 영상의 y(행), x(열)의 원소값
+								int data = p[x];
+								if (data == 255)
+								{
+									// right_lane_start_index 저장(margin만큼 뺀 값을 저장)
+									// 다음 프레임에서 반복문 횟수를 줄이기 위한 과정
+									// margin 많이 할 수록 계산 횟수 증가
+									right_lane_start_index = x - margin;
+
+									// 처음으로 start_point 찾았으므로 저장 및 flag 올리기
+									start_point = cv::Point(x, y);
+									start_flag = true;
+									x_tmp = x;
+									break;
+								}
+								else x++;
+							}
+							x = 415;
+						}
+						// start_point 찾았을 때
+						else if (start_flag == true)
+						{
+							// 영상의 y(행), x(열)의 원소값
+							// start_point 바로 위의 원소값부터 차례대로 확인
+							int data = p[x_tmp];
+
+							// 바로 위의 값이 있다면 그 다음 행으로 이동
+							if (data == 255)
+							{
+								end_point = cv::Point(x_tmp, y);
+							}
+							// 바로 위의 값이 없다면 왼쪽 오른쪽 확인
+							else if(data == 0)
+							{
+								// 바로 위의 값이 없다면 왼쪽부터 확인
+								int data_left = p[(x_tmp - 1)];
+								int data_right = p[(x_tmp + 1)];
+								// 왼쪽에 값이 있으면 왼쪽으로 이동
+								if (data_left == 255)
+								{
+									lane_count--;
+									x_tmp = x_tmp - 1;
+									if (abs(lane_count) >= 3)
+									{
+										tmp_point = cv::Point(x_tmp, y);
+									}
+									end_point = cv::Point(x_tmp, y);
+								}
+								// 왼쪽에 값이 없고 오른쪽에 있으면 오른쪽으로 이동
+								else if (data_right == 255)
+								{
+									lane_count++;
+									x_tmp = x_tmp + 1;
+									if (abs(lane_count) >= 3)
+									{
+										tmp_point = cv::Point(x_tmp, y);
+									}
+									end_point = cv::Point(x_tmp, y);
+								}
+								// 왼쪽과 오른쪽에 둘다 값이 없으면 그 다음 행으로 이동
+								else
+								{
+
+								}
+							}
+						}
+						// 그 다음 행으로 이동(위로 이동)
+						y--;
 					}
-					x = 415;
 				}
+
+				// 프로그램 처음으로 시작하고 나서 그 다음 첫번째 슬라이딩 윈도우
+				// 'n'th Frame 
+				else
+				{
+					//std::cout << "index != 0" << std::endl;
+				}
+
+				// 첫번째 슬라이딩 윈도우 포인트 저장
+				// tmp_point에 저장된 값이 없으면 직선
+				// tmp_point에 저장된 값이 있지만 end_point와의 행의 차이가 
+				// 일정 threshold보다 작으면 직선
+				// 일정 threshold보다 크면 곡선
 			}
+
+			// 두번째부터의 슬라이딩 윈도우
 			else
 			{
-				//std::cout << "index != 0" << std::endl;
+
 			}
+			
 		}
+
+		// Draw Right Lane
+		//cv::polylines(img_zero, right_lane, false, cv::Scalar(255), 2);
+		//cv::imshow("Check Right Lane", img_zero);
 
 		// Check Lane Pixel--------------------------------------
 		cv::Rect right_01(415, 405, 20, 40);
@@ -520,6 +619,26 @@ int main(int argc, char** argv)
 		std::cout << lane_pixel_02 << std::endl;
 		std::cout << lane_pixel_01 << std::endl;
 		std::cout << "--------------------------------------" << std::endl;
+
+		 // Test Code
+		/*int number = 1;
+		for (int i = 0; i < 2; i++)
+		{
+			if (number == 1)
+			{
+				std::cout << "Number: " << number << std::endl;
+				number++;
+			}
+			else
+			{
+				if (number == 2)
+				{
+					std::cout << "Number: " << number << std::endl;
+					break;
+				}
+				std::cout << "Number: " << number << std::endl;
+			}
+		}*/
 
 		// WaitKey
 		int key = cv::waitKey(0);
