@@ -448,7 +448,7 @@ int main(int argc, char** argv)
 	while (1)
 	{
 		std::string num = std::to_string(count);
-		std::string filename = "d:\\computer vision\\lanedetection\\video_frame\\Bird Eye View\\image_" + num + ".jpg";
+		std::string filename = "..\\video_frame\\Bird Eye View\\image_" + num + ".jpg";
 		img = cv::imread(filename);
 		if (img.empty())
 		{
