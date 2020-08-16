@@ -25,7 +25,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{4d4fd0bc-d058-4fdc-8e94-c7ca64fb2331}</ProjectGuid>
     <RootNamespace>Lane_Detection</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
