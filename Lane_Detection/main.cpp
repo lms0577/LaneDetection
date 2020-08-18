@@ -357,14 +357,13 @@ int main(int argc, char** argv)
 int main(int argc, char** argv)
 {
 	cv::Mat img;
-	int count = 13;
+	int count = 93;
 
 	/*std::string num = std::to_string(count);
 	std::string filename = "d:\\computer vision\\lanedetection\\video_frame\\image_" + num + ".jpg";
 	cv::imwrite(filename, img_pers);*/
 
 	int right_lane_start_index = 423;
-
 	int left_lane_start_index = 248;
 
 	while (1)
@@ -379,11 +378,12 @@ int main(int argc, char** argv)
 		}
 		cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
 		img = img > 50;
+		cv::Mat img_check = img.clone();
 
 		// Lane Detection --------------------------------------------------
 		// 오른쪽 차선------------시작-----------------------------------------------
 		// 윈도우 개수
-		int right_window_num = 1;
+		int right_window_num = 2;
 		// 윈도우당 40행씩
 		int right_row = 40;
 		// 오른쪽 차선 포인트 저장 변수
@@ -642,6 +642,11 @@ int main(int argc, char** argv)
 								fake_flag = true;
 							}
 						}
+						// tmp_point_3, tmp_point_4 값이 없으면 가짜 곡선
+						else
+						{
+							fake_flag = true;
+						}
 					}
 
 					// flag로 곡선인지 직선인지 판별 후 각자 맞게 포인트 설정
@@ -659,6 +664,13 @@ int main(int argc, char** argv)
 						{
 							// right_lane_start_index 저장
 							right_lane_start_index = start_point.x - 15;
+						}
+
+						// end_point.y 값이 right_y + 1 값과 같지 않다면
+						// 기울기 값을 계산해서 end_point.x 값을 보정해야 한다.
+						if (end_point.y != (right_y + 1))
+						{
+							end_point.x = start_point.x + (int)(((end_point.x - start_point.x) / (start_point.y - end_point.y)) * (start_point.y - (right_y + 1)));
 						}
 					}
 
@@ -684,7 +696,7 @@ int main(int argc, char** argv)
 					// 포인트 저장
 					// start_point.y, end_point.y 값은 현재 윈도우의 각 끝으로 이동
 					start_point.y = 445;
-					end_point.y = right_y;
+					end_point.y = right_y + 1;
 					right_lane.push_back(start_point);
 					right_lane.push_back(end_point);
 				}
@@ -693,9 +705,312 @@ int main(int argc, char** argv)
 			// 두번째부터의 슬라이딩 윈도우
 			else
 			{
+				// 첫번째 슬라이딩 윈도우에서 못 찾으면 그 다음부터 찾지 않는다. 또는
+				// 세번째 슬라이딩 윈도우부터 그 전의 슬라이딩 윈도우 못 찾으면
+				// 그 다음부터 찾지 않는다.
+				if (right_lane.empty() || (right_lane.size() != (i * 2)))
+				{
+					break;
+				}
+				// 슬라이딩 윈도우에서 찾았으면 그 다음 윈도우를 검색
+				else
+				{
+					// 이전의 윈도우가 직선, 곡선이냐에 따라서 start_index를 설정한다.
+					int start_index, index = (2*i - 2) + 1;
+					int judge_num = right_lane[index].x - right_lane[index - 1].x;
+					// 직선일 때
+					if (judge_num == 0) start_index = right_lane[index].x - 7;
+					// 우회전일 때
+					else if (judge_num > 0) start_index = right_lane[index].x - 10;
+					// 좌회전일 때
+					else start_index = right_lane[index].x - 15;
 
+					// 찾은 선의 첫번째 포인트와 마지막 포인트 그리고 임시 포인트 변수 선언
+					// 초기값 없이 변수 선언하면 Point는 (0, 0)으로 자동으로 초기화 되어있다.
+					cv::Point start_point, end_point, tmp_point_3, tmp_point_4;
+
+					// start_point 찾으면 flag 올리기
+					bool start_flag = false;
+
+					// 중간에 선이 끊기면 flag 올리기
+					bool lose_flag = false;
+
+					// 임시 x(열) 값 저장 변수
+					int x_tmp;
+
+					// 윈도우당 총 40행이므로 40번 반복
+					for (int r = 0; r < right_row; r++)
+					{
+						// 현재 y(행)의 시작 포인터 변수
+						uchar *p = img.ptr<uchar>(right_y);
+
+						// start_point 못 찾았으면 계속 찾는다
+						if (start_flag == false)
+						{
+							// x = start_index(열)부터 선 찾기 시작해서 x = x + 20 까지만 찾기
+							// 행은 윈도우당 40개씩
+							int column = 20;
+							int x = start_index;
+							for (int c = 0; c < column; c++)
+							{
+								// 영상의 y(행), x(열)의 원소값
+								int data = p[x];
+								if (data == 255)
+								{
+									// 처음으로 start_point 찾았으므로 저장 및 flag 올리기
+									// end_point도 저장
+									start_point = cv::Point(x, right_y);
+									end_point = cv::Point(x, right_y);
+									start_flag = true;
+									x_tmp = x;
+									break;
+								}
+								else x++;
+							}
+						}
+						// start_point 찾았을 때
+						else if (start_flag == true && lose_flag == false)
+						{
+							// 영상의 y(행), x_tmp(열)의 원소값
+							// start_point 바로 위의 원소값부터 차례대로 확인
+							int data = p[x_tmp];
+
+							// 바로 위의 값이 있다면 그 다음 행으로 이동
+							if (data == 255)
+							{
+								end_point = cv::Point(x_tmp, right_y);
+							}
+
+							// 바로 위의 값이 없다면 왼쪽 오른쪽 확인
+							else if (data == 0)
+							{
+								// 바로 위의 값이 없다면 왼쪽부터 확인
+								int data_left_01 = p[(x_tmp - 2)];
+								int data_left_02 = p[(x_tmp - 1)];
+								int data_right_01 = p[(x_tmp + 1)];
+								int data_right_02 = p[(x_tmp + 2)];
+
+								// 왼쪽에 값이 있으면 왼쪽으로 이동
+								if (data_left_01 == 255)
+								{
+									lane_count = lane_count - 2;
+									x_tmp = x_tmp - 2;
+									end_point = cv::Point(x_tmp, right_y);
+
+									// 임시 포인트 저장
+									// 곡선이 진짜 곡선인지 가짜 곡선인지 판별하기 위한 변수
+									if (abs(lane_count) == 3)
+									{
+										tmp_point_3 = cv::Point(x_tmp, right_y);
+									}
+									else if (abs(lane_count) == 4)
+									{
+										tmp_point_4 = cv::Point(x_tmp, right_y);
+									}
+								}
+								else if (data_left_02 == 255)
+								{
+									lane_count = lane_count - 1;
+									x_tmp = x_tmp - 1;
+									end_point = cv::Point(x_tmp, right_y);
+
+									// 임시 포인트 저장
+									// 곡선이 진짜 곡선인지 가짜 곡선인지 판별하기 위한 변수
+									if (abs(lane_count) == 3)
+									{
+										tmp_point_3 = cv::Point(x_tmp, right_y);
+									}
+									else if (abs(lane_count) == 4)
+									{
+										tmp_point_4 = cv::Point(x_tmp, right_y);
+									}
+								}
+
+								// 왼쪽에 값이 없고 오른쪽에 있으면 오른쪽으로 이동
+								else if (data_right_01 == 255)
+								{
+									lane_count = lane_count + 1;
+									x_tmp = x_tmp + 1;
+									end_point = cv::Point(x_tmp, right_y);
+
+									// 임시 포인트 저장
+									// 곡선이 진짜 곡선인지 가짜 곡선인지 판별하기 위한 변수
+									if (abs(lane_count) == 3)
+									{
+										tmp_point_3 = cv::Point(x_tmp, right_y);
+									}
+									else if (abs(lane_count) == 4)
+									{
+										tmp_point_4 = cv::Point(x_tmp, right_y);
+									}
+								}
+								else if (data_right_02 == 255)
+								{
+									lane_count = lane_count + 2;
+									x_tmp = x_tmp + 2;
+									end_point = cv::Point(x_tmp, right_y);
+
+									// 임시 포인트 저장
+									// 곡선이 진짜 곡선인지 가짜 곡선인지 판별하기 위한 변수
+									if (abs(lane_count) == 3)
+									{
+										tmp_point_3 = cv::Point(x_tmp, right_y);
+									}
+									else if (abs(lane_count) == 4)
+									{
+										tmp_point_4 = cv::Point(x_tmp, right_y);
+									}
+								}
+
+								// 왼쪽과 오른쪽에 둘다 값이 없으면 그 다음 행으로 이동
+								else
+								{
+									lose_flag = true;
+								}
+							}
+						}
+						// start_point 찾았고 중간에 선이 끊겼을 때
+						else if (start_flag == true && lose_flag == true)
+						{
+							// column, x 변수 선언
+							int column, x;
+
+							// lane_count 값이 양수, 음수, 0에 따라 column, x값 변경
+							if (lane_count > 0)
+							{
+								// start_point의 x - 10 부터 end_point의 x + 5 까지 검색
+								column = (end_point.x + 5) - (start_point.x - 10) + 1;
+								x = start_point.x - 10;
+							}
+							else if (lane_count < 0)
+							{
+								// end_point의 x - 20 부터 start_point의 x + 5 까지 검색
+								column = (start_point.x + 5) - (end_point.x - 20) + 1;
+								x = end_point.x - 20;
+							}
+							else
+							{
+								// end_point의 x - 5 부터 start_point의 x + 5 까지 검색
+								column = 15;
+								x = end_point.x - 5;
+							}
+
+							for (int c = 0; c < column; c++)
+							{
+								// 영상의 y(행), x(열)의 원소값
+								int data = p[x];
+								if (data == 255)
+								{
+									// 다시 end_point 찾았으므로 저장 및 lose_flag 내리기
+									end_point = cv::Point(x, right_y);
+									lose_flag = false;
+									x_tmp = x;
+									// end_point 변경으로 lane_count 다시 설정
+									lane_count = (end_point.x - start_point.x);
+									break;
+								}
+								else x++;
+							}
+						}
+
+						// 그 다음 행으로 이동(위로 이동)
+						right_y--;
+					}
+
+					// 슬라이딩 윈도우에서 선 못 찾았으면 저장 X
+					if (start_point.x != 0)
+					{
+						// 슬라이딩 윈도우 포인트 저장 및 직선인지 곡선인지 판별
+						// 먼저 곡선인지 확인한다. 왜냐햐면 곡선이 가짜 곡선일 수 있기 때문이다.
+
+						// 출력
+						std::cout << "start_point: " << start_point << std::endl;
+						std::cout << "end_point: " << end_point << std::endl;
+						std::cout << "tmp_point_3: " << tmp_point_3 << std::endl;
+						std::cout << "tmp_point_4: " << tmp_point_4 << std::endl;
+
+						// 가짜 곡선 flag 변수 선언
+						bool fake_flag = false;
+						// 진짜 곡선 flag 변수 선언
+						bool curve_flag = false;
+
+						// abs(lane_count) >= 4: 곡선
+						// 곡선이 진짜 곡선인지 가짜 곡선인지부터 판별
+						if (abs(lane_count) >= 4)
+						{
+							// 가짜 곡선인지 확인
+							// tmp_point_3 값이 있으면 이것과 end_point 비교
+							if (tmp_point_3.x != 0)
+							{
+								// (tmp_point_3.y - end_point.y)의 값이
+								// 3보다 크면 곡선
+								if ((tmp_point_3.y - end_point.y) > 3)
+								{
+									curve_flag = true;
+								}
+								else
+								{
+									fake_flag = true;
+								}
+							}
+							// tmp_point_3 값이 없고 tmp_point_4 값이 있으면 이것과 end_point 비교
+							else if (tmp_point_4.x != 0)
+							{
+								// (tmp_point_4.y - end_point.y)의 값이
+								// 2보다 크면 곡선
+								if ((tmp_point_4.y - end_point.y) > 2)
+								{
+									curve_flag = true;
+								}
+								else
+								{
+									fake_flag = true;
+								}
+							}
+							// tmp_point_3, tmp_point_4 값이 없으면 가짜 곡선
+							else
+							{
+								fake_flag = true;
+							}
+						}
+
+						// flag로 곡선인지 직선인지 판별 후 각자 맞게 포인트 설정
+						// curve_flag == true: 곡선
+						if (curve_flag == true)
+						{
+							// end_point.y 값이 right_y + 1 값과 같지 않다면
+							// 기울기 값을 계산해서 end_point.x 값을 보정해야 한다.
+							if (end_point.y != (right_y + 1))
+							{
+								end_point.x = start_point.x + (int)(((end_point.x - start_point.x) / (start_point.y - end_point.y)) * (start_point.y - (right_y + 1)));
+							}
+						}
+
+						// abs(lane_count) <= 3 또는 가짜 곡선일 때: 직선
+						else if (abs(lane_count) <= 3 || fake_flag == true)
+						{
+							// lane_count 값을 기준으로 직선의 열을 정한다.
+							// lane_count 값이 양수면 start_point를 기준
+							if (lane_count > 0)
+							{
+								end_point.x = start_point.x;
+							}
+							// lane_count 값이 음수이거나 0이면 end_point를 기준
+							else if (lane_count <= 0)
+							{
+								start_point.x = end_point.x;
+							}
+						}
+
+						// 포인트 저장
+						// start_point.y, end_point.y 값은 현재 윈도우의 각 끝으로 이동
+						start_point.y = 445 - (i * right_row);
+						end_point.y = right_y + 1;
+						right_lane.push_back(start_point);
+						right_lane.push_back(end_point);
+					}
+				}
 			}
-			
 		}
 
 		// Check Right Lane Pixel and Draw Right Lane
@@ -704,16 +1019,10 @@ int main(int argc, char** argv)
 			std::cout << "오른쪽 차선 없음(못 찾음)" << std::endl;
 			int x = right_lane_start_index;
 			cv::Rect right_01(x, 406, 30, 40);
-			cv::Mat img_check = img.clone();
 			cv::Mat lane_pixel_01 = img(right_01);
 			cv::rectangle(img_check, right_01, cv::Scalar(255), 1);
-			cv::imshow("Check Lane Pixel Image", img_check);
 			std::cout << lane_pixel_01 << std::endl;
 			std::cout << "--------------------------------------" << std::endl;
-
-			// Draw Right Lane
-			//cv::polylines(img, right_lane, false, cv::Scalar(255), 4);
-			cv::imshow("Check Right Lane", img);
 		}
 		else
 		{
@@ -740,16 +1049,13 @@ int main(int argc, char** argv)
 			}
 
 			cv::Rect right_01(x, 406, 30, 40);
-			cv::Mat img_check = img.clone();
 			cv::Mat lane_pixel_01 = img(right_01);
 			cv::rectangle(img_check, right_01, cv::Scalar(255), 1);
-			cv::imshow("Check Lane Pixel Image", img_check);
 			std::cout << lane_pixel_01 << std::endl;
 			std::cout << "--------------------------------------" << std::endl;
 
 			// Draw Right Lane
 			cv::polylines(img, right_lane, false, cv::Scalar(255), 4);
-			cv::imshow("Check Right Lane", img);
 		}
 		// 오른쪽 차선------------끝-----------------------------------------------
 
@@ -1013,6 +1319,11 @@ int main(int argc, char** argv)
 								fake_flag = true;
 							}
 						}
+						// tmp_point_3, tmp_point_4 값이 없으면 가짜 곡선
+						else
+						{
+							fake_flag = true;
+						}
 					}
 
 					// flag로 곡선인지 직선인지 판별 후 각자 맞게 포인트 설정
@@ -1030,6 +1341,13 @@ int main(int argc, char** argv)
 						{
 							// left_lane_start_index 저장
 							left_lane_start_index = start_point.x + 10;
+						}
+
+						// end_point.y 값이 left_y + 1 값과 같지 않다면
+						// 기울기 값을 계산해서 end_point.x 값을 보정해야 한다.
+						if (end_point.y != (left_y + 1))
+						{
+							end_point.x = start_point.x + (int)(((end_point.x - start_point.x) / (start_point.y - end_point.y)) * (start_point.y - (left_y + 1)));
 						}
 					}
 
@@ -1055,7 +1373,7 @@ int main(int argc, char** argv)
 					// 포인트 저장
 					// start_point.y, end_point.y 값은 현재 윈도우의 각 끝으로 이동
 					start_point.y = 445;
-					end_point.y = left_y;
+					end_point.y = left_y + 1;
 					left_lane.push_back(start_point);
 					left_lane.push_back(end_point);
 				}
@@ -1075,16 +1393,10 @@ int main(int argc, char** argv)
 			std::cout << "왼쪽 차선 없음(못 찾음)" << std::endl;
 			int x = left_lane_start_index - 29;
 			cv::Rect left_01(x, 406, 30, 40);
-			cv::Mat img_check = img.clone();
 			cv::Mat lane_pixel_01 = img(left_01);
 			cv::rectangle(img_check, left_01, cv::Scalar(255), 1);
-			cv::imshow("Check Left Lane Pixel Image", img_check);
 			std::cout << lane_pixel_01 << std::endl;
 			std::cout << "--------------------------------------" << std::endl;
-
-			// Draw Right Lane
-			//cv::polylines(img, right_lane, false, cv::Scalar(255), 4);
-			cv::imshow("Check Left Lane", img);
 		}
 		else
 		{
@@ -1110,30 +1422,26 @@ int main(int argc, char** argv)
 				}
 			}
 
-			cv::Rect right_01(x, 406, 30, 40);
-			cv::Mat img_check = img.clone();
-			cv::Mat lane_pixel_01 = img(right_01);
-			cv::rectangle(img_check, right_01, cv::Scalar(255), 1);
-			cv::imshow("Check Left Lane Pixel Image", img_check);
+			cv::Rect left_01(x, 406, 30, 40);
+			cv::Mat lane_pixel_01 = img(left_01);
+			cv::rectangle(img_check, left_01, cv::Scalar(255), 1);
 			std::cout << lane_pixel_01 << std::endl;
 			std::cout << "--------------------------------------" << std::endl;
 
 			// Draw Right Lane
 			cv::polylines(img, left_lane, false, cv::Scalar(255), 4);
-			cv::imshow("Check Left Lane", img);
 		}
 		// 왼쪽 차선------------끝-----------------------------------------------
 
 		// 중간값 출력
-		std::cout << "left_x: " << left_lane[0].x << ", right_x: " << right_lane[0].x << std::endl;
+		/*std::cout << "left_x: " << left_lane[0].x << ", right_x: " << right_lane[0].x << std::endl;
 		std::cout << "center_x: " << (int)((left_lane[0].x + right_lane[0].x) / 2) << std::endl;
-		std::cout << "width: " << (left_lane[0].x + right_lane[0].x) << std::endl;
+		std::cout << "width: " << (left_lane[0].x + right_lane[0].x) << std::endl;*/
 
-		// Draw Right Lane
-		//cv::Mat img_zero = cv::Mat::zeros(480, 640, CV_8U);
-		//cv::polylines(img, right_lane, false, cv::Scalar(255), 4);
-		//cv::imshow("Check Right Lane", img);
-		//std::cout << "Right_Lane 값: " << right_lane << std::endl;
+		// Show Image
+		cv::imshow("Check Lane Pixel Image", img_check);
+		cv::imshow("Check Lane", img);
+		
 
 		// Check Lane Pixel--------------------------------------
 		/*cv::Rect right_01(415, 405, 20, 40);
@@ -1156,43 +1464,14 @@ int main(int argc, char** argv)
 		std::cout << lane_pixel_01 << std::endl;
 		std::cout << "--------------------------------------" << std::endl;*/
 
-		 // Test Code
-		/*int number = 1;
-		for (int i = 0; i < 2; i++)
-		{
-			if (number == 1)
-			{
-				std::cout << "Number: " << number << std::endl;
-				number++;
-			}
-			else
-			{
-				if (number == 2)
-				{
-					std::cout << "Number: " << number << std::endl;
-					break;
-				}
-				std::cout << "Number: " << number << std::endl;
-			}
-		}*/
-		/*for (int i = 0; i < 5; i++)
-		{
-			for (int j = 0; j < 5; j++)
-			{
-				if (i == 1)
-				{
-					break;
-				}
-				else
-				{
-					std::cout << "j: " << j << std::endl;
-				}
-				
-			}
-			std::cout << "i: " << i << std::endl;
-		}*/
-		//cv::Point test;
-		//std::cout << "Point test 값: " << test << std::endl;
+		// Test Code
+		std::vector<cv::Point> test;
+		cv::Point p1 = cv::Point(1, 1);
+		cv::Point p2 = cv::Point(2, 2);
+		test.push_back(p1);
+		test.push_back(p2);
+		std::cout << "test.size(): " << test.size() << std::endl;
+
 
 		// WaitKey
 		int key = cv::waitKey(0);
