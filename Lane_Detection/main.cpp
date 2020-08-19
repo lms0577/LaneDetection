@@ -73,10 +73,6 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	// Declare Variable -------------------------------------------------------
-	cv::Mat img, img_gray, img_aBinary, img_gaussian, img_aBinary_gaussian, img_hsv, 
-		img_lab, img_binary_gaussian, img_no_light;
-
 	// Get Video width x height ----------------------------------------------
 	double width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
 	double height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
@@ -135,42 +131,25 @@ int main(int argc, char** argv)
 	while (1)
 	{
 		// Read 1 frame from Video File
+		cv::Mat img;
 		cap.read(img);
-		//img = cv::imread("D:\\Computer Vision\\LaneDetection\\Video_Frame\\image_10.jpg");
+		//img = cv::imread("..\\Video_Frame\\Original Image\\image_70.jpg");
 		if (img.empty())
 		{
 			std::cerr << "No Frame\n";
 			break;
 		}
+		cv::imshow("Original Image", img);
 
 		// Gaussian Filter-------------------------------------
-		//double sigma = 2;
-		cv::GaussianBlur(img, img_gaussian, cv::Size(), 1);
-
-		// Show Video Image--------------------------------------
-		//cv::imshow("Original Image", img);
-
-		// Convert BGR to Gray------------------------------------
-		//cv::cvtColor(img, img_gray, cv::COLOR_BGR2GRAY);
-		//cv::imshow("Gray Image", img_gray);
-
-		// Convert BGR to HSV----------------------------------------
-		/*cv::Mat hsv, v, white, yellow, or_img;
-		cv::Scalar yellow_lower(5, 90, 100);
-		cv::Scalar yellow_upper(200, 255, 255);
-		std::vector<cv::Mat> hsv_split;
-		cv::cvtColor(img, hsv, cv::COLOR_BGR2HSV);
-		cv::split(hsv, hsv_split);
-		v = hsv_split[2];
-		cv::inRange(v, 245, 255, white);
-		cv::inRange(hsv, yellow_lower, yellow_upper, yellow);
-		cv::bitwise_or(white, yellow, or_img);
-		cv::imshow("White", white);
-		cv::imshow("Yellow", yellow);
-		cv::imshow("Or Image", or_img);*/
+		cv::Mat img_gaussian;
+		double sigma = 1;
+		cv::GaussianBlur(img, img_gaussian, cv::Size(), sigma);
+		cv::imshow("Gaussian Filter Image", img_gaussian);
 
 		// Convert BGR to Lab-----------------------------------
 		// 조명 효과 제거하기 위한 변환
+		cv::Mat img_lab, img_no_light;
 		cv::cvtColor(img_gaussian, img_lab, cv::COLOR_BGR2Lab);
 		std::vector<cv::Mat> lab;
 		cv::split(img_lab, lab);
@@ -185,10 +164,10 @@ int main(int argc, char** argv)
 		cv::bitwise_not(temp, lab[0]);
 		cv::merge(lab, img_lab);
 		cv::cvtColor(img_lab, img_no_light, cv::COLOR_Lab2BGR);
-		//cv::imshow("No Lightness Image", img_no_light);
+		cv::imshow("No Lightness Image", img_no_light);
 
 		// Convert BGR to HSV----------------------------------------
-		cv::Mat hue, saturation, value, dst, hsv_range, h_range, s_range, v_range, dst_and, test;
+		cv::Mat img_hsv, hue, saturation, value, hsv_range;
 		int hue_low = cv::getTrackbarPos("Lower Hue", "HSV Image");
 		int hue_up = cv::getTrackbarPos("Upper Hue", "HSV Image");
 		int sat_low = cv::getTrackbarPos("Lower Sat", "HSV Image");
@@ -200,76 +179,23 @@ int main(int argc, char** argv)
 		std::vector<cv::Mat> hsv_split;
 		cv::cvtColor(img_no_light, img_hsv, cv::COLOR_BGR2HSV);
 		cv::inRange(img_hsv, lower, upper, hsv_range);
-		//cv::imshow("HSV Range Binary Image", hsv_range);
+		cv::imshow("HSV Range Binary Image", hsv_range);
 
 		cv::Mat img_or, yello_01, white_01;
 		cv::inRange(img_hsv, cv::Scalar(0, 50, 50), cv::Scalar(50, 255, 255), yello_01);
 		cv::inRange(img_hsv, cv::Scalar(0, 0, 30), cv::Scalar(180, 50, 255), white_01);
 		cv::bitwise_or(yello_01, white_01, img_or);
-		//cv::imshow("Or Image", img_or);
-
-		//cv::bitwise_and(img_hsv, img_hsv, dst_and, hsv_range);
-		cv::split(img_hsv, hsv_split);
-		hue = hsv_split[0];
-		saturation = hsv_split[1];
-		value = hsv_split[2];
-		//cv::inRange(hue, 0, 50, hue);
-		//cv::inRange(saturation, 0, 50, saturation);
-		//cv::inRange(hue, hue_low, hue_up, hue);
-		//cv::inRange(saturation, sat_low, sat_up, saturation);
-		//cv::inRange(value, val_low, val_up, value);
-		//cv::bitwise_and(img_hsv, img_hsv, h_range, hue);
-		//cv::bitwise_and(img_hsv, img_hsv, s_range, saturation);
-		//cv::bitwise_and(img_hsv, img_hsv, v_range, value);
-		//cv::bitwise_or(h_range, s_range, test);
-		//cv::bitwise_or(hsv_range, v_range, hsv_range);
-		//cv::cvtColor(dst_and, dst, cv::COLOR_HSV2BGR);
-		//cv::inRange(hsv, lower_hue, upper_hue, yellow);
-		//cv::bitwise_or(white, yellow, or_img);
-		//cv::imshow("White", white);
-		//cv::imshow("HSV Range Image", dst);
-		//img_roi = img_no_light(roi).row(0);
-		/*std::cout << "Hue: " << std::endl;
-		std::cout << h.row(460) << std::endl;
-		std::cout << "Saturation: " << std::endl;
-		std::cout << s.row(460) << std::endl;
-		std::cout << "Value: " << std::endl;
-		std::cout << v.row(460) << std::endl;
-
-		cv::line(img_no_light, cv::Point(0, 460), cv::Point(640, 460), cv::Scalar(0, 0, 255), 2);
-		cv::imshow("Show ROI", img_no_light);*/
+		cv::imshow("Or Image", img_or);
+		
+		//cv::split(img_hsv, hsv_split);
+		//hue = hsv_split[0];
+		//saturation = hsv_split[1];
+		//value = hsv_split[2];img_or
 
 		// Canny Edge ----------------------------------------------
 		cv::Mat img_canny;
 		cv::Canny(img_or, img_canny, 150, 300);
 		cv::imshow("Canny Edge Image", img_canny);
-
-		// Convert BGR to Gray-------------------------------------
-		/*cv::cvtColor(img_no_light, img_gray, cv::COLOR_BGR2GRAY);
-		cv::imshow("No Lightness Gray Image", img_gray);*/
-		
-
-		// Convert BGR to HSV----------------------------------------
-		//cv::cvtColor(img_no_light, img_hsv, cv::COLOR_BGR2HSV);
-		//cv::Mat test;
-		//std::vector<cv::Mat> hsv;
-		//cv::split(img_hsv, hsv);
-		//cv::Mat hue = hsv[0];
-		//cv::Mat saturation = hsv[1];
-		//cv::Mat value = hsv[2];
-		//cv::Scalar yellow_low(5, 90, 100);
-		//cv::Scalar yellow_up(200, 255, 255);
-		////value = value > 50;
-		//cv::inRange(img_hsv, yellow_low, yellow_up, test);
-		//cv::imshow("Test", test);
-		////cv::imshow("H", hue);
-		////cv::imshow("S", saturation);
-		////cv::imshow("V", value);
-
-		
-		// Gaussian Filter-------------------------------------
-		//double sigma = 2;
-		//cv::GaussianBlur(value, img_gaussian, cv::Size(), sigma);
 
 		// Binarization----------------------------------------
 		/*
@@ -299,7 +225,7 @@ int main(int argc, char** argv)
 		cv::Mat img_pers;
 		cv::warpPerspective(img_cali, img_pers, pers, cv::Size());
 		img_pers = img_pers >= 50;
-		//cv::imshow("Perspective Transform Image", img_pers);
+		cv::imshow("Perspective Transform Image", img_pers);
 
 		// Sobel Operator ----------------------------------------------
 		/*cv::Mat img_sobel_x, img_sobel_y;
@@ -333,8 +259,9 @@ int main(int argc, char** argv)
 		//std::cout << lane_pixel_01 << std::endl;
 		//std::cout << "--------------------------------------" << std::endl;
 
-		// Lane Detection --------------------------------------------------
-		cv::Mat img_check = img_pers.clone();
+		// Lane Detection ------------------------------------------------------------------------
+		//cv::Mat img_check = img_pers.clone();
+		cv::Mat img_lane = img_pers.clone();
 
 		// 오른쪽 차선------------시작-----------------------------------------------
 		// 윈도우 개수
@@ -372,7 +299,7 @@ int main(int argc, char** argv)
 				for (int r = 0; r < right_row; r++)
 				{
 					// 현재 y(행)의 시작 포인터 변수
-					uchar *p = img_pers.ptr<uchar>(right_y);
+					uchar *p = img_lane.ptr<uchar>(right_y);
 
 					// start_point 못 찾았으면 계속 찾는다
 					if (start_flag == false)
@@ -701,7 +628,7 @@ int main(int argc, char** argv)
 					for (int r = 0; r < right_row; r++)
 					{
 						// 현재 y(행)의 시작 포인터 변수
-						uchar *p = img_pers.ptr<uchar>(right_y);
+						uchar *p = img_lane.ptr<uchar>(right_y);
 
 						// start_point 못 찾았으면 계속 찾는다
 						if (start_flag == false)
@@ -979,46 +906,14 @@ int main(int argc, char** argv)
 		// Check Right Lane Pixel and Draw Right Lane
 		if (right_lane.empty())
 		{
-			std::cout << "오른쪽 차선 없음(못 찾음)" << std::endl;
-			int x = right_lane_start_index;
-			cv::Rect right_01(x, 406, 30, 40);
-			cv::Mat lane_pixel_01 = img_pers(right_01);
-			cv::rectangle(img_check, right_01, cv::Scalar(255), 1);
-			//std::cout << lane_pixel_01 << std::endl;
-			std::cout << "--------------------------------------" << std::endl;
+			std::cout << "오른쪽 차선 못 찾음" << std::endl;
 		}
 		else
 		{
 			std::cout << "오른쪽 차선 찾음" << std::endl;
-			int x;
-			// 직선
-			if (right_lane[0].x == right_lane[1].x)
-			{
-				x = right_lane[0].x;
-			}
-			// 곡선
-			else
-			{
-				// 우회전
-				if (right_lane[0].x < right_lane[1].x)
-				{
-					x = right_lane[0].x;
-				}
-				// 좌회전
-				else
-				{
-					x = right_lane[1].x;
-				}
-			}
-
-			cv::Rect right_01(x, 406, 30, 40);
-			cv::Mat lane_pixel_01 = img_pers(right_01);
-			cv::rectangle(img_check, right_01, cv::Scalar(255), 1);
-			//std::cout << lane_pixel_01 << std::endl;
-			std::cout << "--------------------------------------" << std::endl;
-
+			
 			// Draw Right Lane
-			cv::polylines(img_pers, right_lane, false, cv::Scalar(255), 4);
+			cv::polylines(img_lane, right_lane, false, cv::Scalar(255), 6);
 		}
 		// 오른쪽 차선------------끝-----------------------------------------------
 
@@ -1058,7 +953,7 @@ int main(int argc, char** argv)
 				for (int r = 0; r < left_row; r++)
 				{
 					// 현재 y(행)의 시작 포인터 변수
-					uchar *p = img_pers.ptr<uchar>(left_y);
+					uchar *p = img_lane.ptr<uchar>(left_y);
 
 					// start_point 못 찾았으면 계속 찾는다
 					if (start_flag == false)
@@ -1386,7 +1281,7 @@ int main(int argc, char** argv)
 					for (int r = 0; r < left_row; r++)
 					{
 						// 현재 y(행)의 시작 포인터 변수
-						uchar *p = img_pers.ptr<uchar>(left_y);
+						uchar *p = img_lane.ptr<uchar>(left_y);
 
 						// start_point 못 찾았으면 계속 찾는다
 						if (start_flag == false)
@@ -1664,56 +1559,24 @@ int main(int argc, char** argv)
 		// Check Left Lane Pixel and Draw Left Lane
 		if (left_lane.empty())
 		{
-			std::cout << "왼쪽 차선 없음(못 찾음)" << std::endl;
-			int x = left_lane_start_index - 29;
-			cv::Rect left_01(x, 406, 30, 40);
-			cv::Mat lane_pixel_01 = img_pers(left_01);
-			cv::rectangle(img_check, left_01, cv::Scalar(255), 1);
-			//std::cout << lane_pixel_01 << std::endl;
-			std::cout << "--------------------------------------" << std::endl;
+			std::cout << "왼쪽 차선 못 찾음" << std::endl;
 		}
 		else
 		{
 			std::cout << "왼쪽 차선 찾음" << std::endl;
-			int x;
-			// 직선
-			if (left_lane[0].x == left_lane[1].x)
-			{
-				x = left_lane[0].x - 29;
-			}
-			// 곡선
-			else
-			{
-				// 우회전
-				if (left_lane[0].x < left_lane[1].x)
-				{
-					x = left_lane[1].x - 29;
-				}
-				// 좌회전
-				else
-				{
-					x = left_lane[0].x - 29;
-				}
-			}
-
-			cv::Rect left_01(x, 406, 30, 40);
-			cv::Mat lane_pixel_01 = img_pers(left_01);
-			cv::rectangle(img_check, left_01, cv::Scalar(255), 1);
-			//std::cout << lane_pixel_01 << std::endl;
-			std::cout << "--------------------------------------" << std::endl;
 
 			// Draw Right Lane
-			cv::polylines(img_pers, left_lane, false, cv::Scalar(255), 4);
+			cv::polylines(img_lane, left_lane, false, cv::Scalar(255), 6);
 		}
 		// 왼쪽 차선------------끝-----------------------------------------------
 
 		// Show Image
-		cv::imshow("Check Lane Pixel Image", img_check);
-		cv::imshow("Perspective Transform Image", img_pers);
+		//cv::imshow("Check Lane Pixel Image", img_check);
+		cv::imshow("Lane Detection Image", img_lane);
 
 		// Inverse Perspective 
 		/*cv::Mat img_invPers;
-		cv::warpPerspective(img_pers, img_invPers, invPers, cv::Size());
+		cv::warpPerspective(img_lane, img_invPers, invPers, cv::Size());
 		cv::imshow("Inverse Perspective Transform Image", img_invPers);*/
 
 		// Save Frame ------------------------------------------------
@@ -1722,17 +1585,41 @@ int main(int argc, char** argv)
 		std::string filename = "D:\\Computer Vision\\LaneDetection\\Video_Frame\\image_" + num + ".bmp";
 		cv::imwrite(filename, img_pers);*/
 
-		// WaitKey
+		// WaitKey-------------------------------------------------------------
+		// For Video
 		int key = cv::waitKey(1);
-		if (key >= 0)
+		// For Image
+		//int key = cv::waitKey(0);
+
+		if (key == 27) // ESC
 		{
 			// Print Key
-			std::cout << "Key Value: " << key << std::endl;
+			//std::cout << "Key Value: " << key << std::endl;
 
 			// Release Resource
 			cap.release();
 			cv::destroyAllWindows();
 			break;
+		}
+		else if (key == 99) // c (Capture Image)
+		{
+			std::string path = "D:\\Computer Vision\\LaneDetection\\Video_Frame\\";
+			std::string original_file = path + "Original_Image.jpg";
+			cv::imwrite(original_file, img);
+			std::string gaussian_file = path + "Gaussian_Image.jpg";
+			cv::imwrite(gaussian_file, img_gaussian);
+			std::string no_light_file = path + "No_Light_Image.jpg";
+			cv::imwrite(no_light_file, img_no_light);
+			std::string hsv_file = path + "HSV_Image.jpg";
+			cv::imwrite(hsv_file, img_or);
+			std::string canny_file = path + "Canny_Edge_Image.jpg";
+			cv::imwrite(canny_file, img_canny);
+			std::string cali_file = path + "Calibration_Image.jpg";
+			cv::imwrite(cali_file, img_cali);
+			std::string pers_file = path + "Perspective_Image.jpg";
+			cv::imwrite(pers_file, img_pers);
+			std::string lane_file = path + "Lane_Image.jpg";
+			cv::imwrite(lane_file, img_lane);
 		}
 	}
 
