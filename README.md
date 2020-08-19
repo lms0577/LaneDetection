@@ -20,7 +20,7 @@ OS | Windows 10 Pro
 * **0st: 원본 이미지**
   + <사진>
      + <div>
-       <img src="https://user-images.githubusercontent.com/55565351/90621391-a2825b80-e24e-11ea-917e-e9aa5e692c2a.jpg" width="300" height="300"/>
+       <img src="https://user-images.githubusercontent.com/55565351/90621391-a2825b80-e24e-11ea-917e-e9aa5e692c2a.jpg" width="320" height="240"/>
        </div>
      
 * **1st: 가우시안 블러링**
@@ -30,7 +30,7 @@ OS | Windows 10 Pro
      + cv::GaussianBlur();
   + <사진>
      + <div>
-       <img src="https://user-images.githubusercontent.com/55565351/90621479-bf1e9380-e24e-11ea-8f8a-9bb134e72ce7.jpg" width="300" height="300"/>
+       <img src="https://user-images.githubusercontent.com/55565351/90621479-bf1e9380-e24e-11ea-8f8a-9bb134e72ce7.jpg" width="320" height="240"/>
        </div>
      
 * **2nd: 색 공간 변환(BGR to Lab)**
@@ -45,7 +45,7 @@ OS | Windows 10 Pro
      + cv::merge();
   + <사진>
      + <div>
-       <img src="https://user-images.githubusercontent.com/55565351/90621573-dcebf880-e24e-11ea-9179-797bd6f41784.jpg" width="300" height="300"/>
+       <img src="https://user-images.githubusercontent.com/55565351/90621573-dcebf880-e24e-11ea-9179-797bd6f41784.jpg" width="320" height="240"/>
        </div>
      
 * **3rd: 색 공간 변환(BGR to HSV)**
@@ -57,7 +57,7 @@ OS | Windows 10 Pro
      + cv::bitwise_or();
   + <사진>
      + <div>
-       <img src="https://user-images.githubusercontent.com/55565351/90621646-f5f4a980-e24e-11ea-9122-e06a31654c47.jpg" width="300" height="300"/>
+       <img src="https://user-images.githubusercontent.com/55565351/90621646-f5f4a980-e24e-11ea-9122-e06a31654c47.jpg" width="320" height="240"/>
        </div>
        
 * **4th: 캐니 에지 검출기**
@@ -67,7 +67,7 @@ OS | Windows 10 Pro
      + cv::Canny();
   + <사진>
      + <div>
-       <img src="https://user-images.githubusercontent.com/55565351/90621661-fc832100-e24e-11ea-8013-9ea0013f5936.jpg" width="300" height="300"/>
+       <img src="https://user-images.githubusercontent.com/55565351/90621661-fc832100-e24e-11ea-8013-9ea0013f5936.jpg" width="320" height="240"/>
        </div>
      
 * **5th: 카메라 왜곡 보정**
@@ -78,7 +78,7 @@ OS | Windows 10 Pro
      + cv::remap();
   + <사진>
      + <div>
-       <img src="https://user-images.githubusercontent.com/55565351/90621680-03119880-e24f-11ea-9e99-964007d4beee.jpg" width="300" height="300"/>
+       <img src="https://user-images.githubusercontent.com/55565351/90621680-03119880-e24f-11ea-9e99-964007d4beee.jpg" width="320" height="240"/>
        </div>
      
 * **6th: 투시 변환**
@@ -89,7 +89,24 @@ OS | Windows 10 Pro
      + cv::warpPerspective();
   + <사진>
      + <div>
-       <img src="https://user-images.githubusercontent.com/55565351/90621691-060c8900-e24f-11ea-9aa7-ca055f2df359.jpg" width="300" height="300"/>
+       <img src="https://user-images.githubusercontent.com/55565351/90621691-060c8900-e24f-11ea-9aa7-ca055f2df359.jpg" width="320" height="240"/>
+       </div>
+       
+* **7th: 차선 인식**
+  + <이유>
+     + 차선을 인식하기 위한 알고리즘 개발
+     + 차선으로 간주되는 픽셀을 찾고 그 픽셀을 기준으로 바로 위의 행으로 이동한다.
+     + 그 다음 행에서도 차선으로 간주되는 픽셀을 찾는다. 이와 같은 행동을 40번(40행) 반복
+     + 반복이 끝나면 찾은 첫번째 픽셀과 마지막 픽셀의 행과 열을 기준으로 직선인지 곡선인지 판별한다.
+     + 직선(곡선)의 포인트를 저장하고 선을 그린다.
+  + <함수>
+     + cv::Point();
+     + cv::Mat::ptr();
+     + cv::polylines();
+  + <사진>
+     + <div>
+       <img src="https://user-images.githubusercontent.com/55565351/90621707-086ee300-e24f-11ea-912f-f1eb95235ef0.jpg" width="320" height="240"/>
+       <img src="https://user-images.githubusercontent.com/55565351/90624096-64873680-e252-11ea-8135-10f965e45704.jpg" width="320" height="240"/>
        </div>
 
 * **참고**
