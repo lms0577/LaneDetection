@@ -17,11 +17,21 @@ OS | Windows 10 Pro
 통합 개발 환경 | Visual Studio 2017
 
 ## 차선 인식 과정
+* **0st: 원본 이미지**
+  + <사진>
+     + <div>
+       <img src="https://user-images.githubusercontent.com/55565351/90621391-a2825b80-e24e-11ea-917e-e9aa5e692c2a.jpg" width="300" height="300"/>
+       </div>
+     
 * **1st: 가우시안 블러링**
   + <이유>
      + 초점이 맞지 않은 사진처럼 영상을 부드럽게 만드는 필터링 기법, 잡음의 영향을 제거하는 전처리 과정으로 사용
   + <함수>
      + cv::GaussianBlur();
+  + <사진>
+     + <div>
+       <img src="https://user-images.githubusercontent.com/55565351/90621479-bf1e9380-e24e-11ea-8f8a-9bb134e72ce7.jpg" width="300" height="300"/>
+       </div>
      
 * **2nd: 색 공간 변환(BGR to Lab)**
   + <이유>
@@ -33,6 +43,10 @@ OS | Windows 10 Pro
      + cv::medianBlur();
      + cv::add();
      + cv::merge();
+  + <사진>
+     + <div>
+       <img src="https://user-images.githubusercontent.com/55565351/90621573-dcebf880-e24e-11ea-9179-797bd6f41784.jpg" width="300" height="300"/>
+       </div>
      
 * **3rd: 색 공간 변환(BGR to HSV)**
   + <이유>
@@ -41,12 +55,20 @@ OS | Windows 10 Pro
      + cv::cvtColor();
      + cv::inRange();
      + cv::bitwise_or();
-     
+  + <사진>
+     + <div>
+       <img src="https://user-images.githubusercontent.com/55565351/90621646-f5f4a980-e24e-11ea-9122-e06a31654c47.jpg" width="300" height="300"/>
+       </div>
+       
 * **4th: 캐니 에지 검출기**
   + <이유>
      + 차선의 에지만 검출하기 위해 사용
   + <함수>
      + cv::Canny();
+  + <사진>
+     + <div>
+       <img src="https://user-images.githubusercontent.com/55565351/90621661-fc832100-e24e-11ea-8013-9ea0013f5936.jpg" width="300" height="300"/>
+       </div>
      
 * **5th: 카메라 왜곡 보정**
   + <이유>
@@ -54,6 +76,10 @@ OS | Windows 10 Pro
   + <함수>
      + cv::initUndistortRectifyMap();
      + cv::remap();
+  + <사진>
+     + <div>
+       <img src="https://user-images.githubusercontent.com/55565351/90621680-03119880-e24f-11ea-9e99-964007d4beee.jpg" width="300" height="300"/>
+       </div>
      
 * **6th: 투시 변환**
   + <이유>
@@ -61,6 +87,10 @@ OS | Windows 10 Pro
   + <함수>
      + cv::getPerspectiveTransform();
      + cv::warpPerspective();
+  + <사진>
+     + <div>
+       <img src="https://user-images.githubusercontent.com/55565351/90621691-060c8900-e24f-11ea-9aa7-ca055f2df359.jpg" width="300" height="300"/>
+       </div>
 
 * **참고**
   + https://blog.naver.com/hirit808/221486800161
